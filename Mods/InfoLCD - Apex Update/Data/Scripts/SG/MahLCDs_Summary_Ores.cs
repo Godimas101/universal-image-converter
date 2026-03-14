@@ -136,7 +136,7 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
             sb.AppendLine();
-            ConfigHelpers.AppendScrollingConfig(sb);
+            ConfigHelpers.AppendScrollingConfig(sb, "ORES");
 
             sb.AppendLine("; [ ORES - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");

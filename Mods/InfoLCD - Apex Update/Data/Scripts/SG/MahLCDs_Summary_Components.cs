@@ -138,7 +138,7 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
             sb.AppendLine();
-            ConfigHelpers.AppendScrollingConfig(sb);
+            ConfigHelpers.AppendScrollingConfig(sb, "COMPONENTS");
 
             sb.AppendLine("; [ COMPONENTS - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");

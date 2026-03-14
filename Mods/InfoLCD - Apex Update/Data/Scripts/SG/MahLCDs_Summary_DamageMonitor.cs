@@ -103,7 +103,7 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
             sb.AppendLine();
-            sb.AppendLine("; [ SCREEN - SCROLLING OPTIONS ]");
+            sb.AppendLine("; [ DAMAGEMONITOR - SCROLLING OPTIONS ]");
             sb.AppendLine($"ToggleScroll={toggleScroll}");
             sb.AppendLine("; Enable scrolling to view damaged blocks that don't fit on screen");
             sb.AppendLine("; Set to 'true' to activate. Scrolling only occurs when there's overflow data.");

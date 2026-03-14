@@ -144,7 +144,7 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
             sb.AppendLine();
-            ConfigHelpers.AppendScrollingConfig(sb);
+            ConfigHelpers.AppendScrollingConfig(sb, "INGOTS");
 
             sb.AppendLine("; [ INGOTS - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");

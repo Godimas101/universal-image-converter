@@ -145,7 +145,7 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
             sb.AppendLine();
-            ConfigHelpers.AppendScrollingConfig(sb);
+            ConfigHelpers.AppendScrollingConfig(sb, "AMMO");
 
             sb.AppendLine("; [ AMMO - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");

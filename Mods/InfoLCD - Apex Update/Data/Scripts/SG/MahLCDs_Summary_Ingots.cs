@@ -63,7 +63,7 @@ namespace MahrianeIndustries.LCDInfo
             // Scrolling state
             toggleScroll = false;
             reverseDirection = false;
-            scrollSpeed = 5;
+            scrollSpeed = 60;
             scrollLines = 1;
             scrollOffset = 0;
             ticksSinceLastScroll = 0;
@@ -392,7 +392,7 @@ namespace MahrianeIndustries.LCDInfo
             // Update scroll offset if scrolling is enabled
             if (toggleScroll)
             {
-                ticksSinceLastScroll++;
+                ticksSinceLastScroll += 10;  // Update10 fires every 10 ticks — must increment by 10
                 if (ticksSinceLastScroll >= scrollSpeed)
                 {
                     ticksSinceLastScroll = 0;

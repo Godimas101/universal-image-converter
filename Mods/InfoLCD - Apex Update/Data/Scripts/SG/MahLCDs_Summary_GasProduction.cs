@@ -203,7 +203,7 @@ namespace MahrianeIndustries.LCDInfo
                     if (config.ContainsKey(CONFIG_SECTION_ID, "ReverseDirection"))
                         reverseDirection = config.Get(CONFIG_SECTION_ID, "ReverseDirection").ToBoolean(false);
                     if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollSpeed"))
-                        scrollSpeed = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollSpeed").ToInt32(6));
+                        scrollSpeed = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollSpeed").ToInt32(60));
                     if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollLines"))
                         scrollLines = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollLines").ToInt32(1));
                     if (config.ContainsKey(CONFIG_SECTION_ID, "MaxListLines"))

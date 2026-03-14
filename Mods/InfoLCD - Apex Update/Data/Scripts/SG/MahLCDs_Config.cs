@@ -1624,7 +1624,7 @@ namespace MahrianeIndustries.LCDInfo
             sb.AppendLine();
         }
 
-        public static void AppendScrollingConfig(StringBuilder sb, bool toggleScroll = false, bool reverseDirection = false, int scrollSpeed = 5, int scrollLines = 1, int maxListLines = 5)
+        public static void AppendScrollingConfig(StringBuilder sb, bool toggleScroll = false, bool reverseDirection = false, int scrollSpeed = 60, int scrollLines = 1, int maxListLines = 5)
         {
             sb.AppendLine("; [ SCROLLING OPTIONS ]");
             sb.AppendLine($"ToggleScroll={toggleScroll}");

@@ -119,6 +119,9 @@ namespace MahrianeIndustries.LCDInfo
 
         public override void Run()
         {
+            if (MyAPIGateway.Utilities?.IsDedicated ?? false)
+                return;
+
             try
             {
                 base.Run();

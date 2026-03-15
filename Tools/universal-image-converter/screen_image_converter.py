@@ -171,7 +171,7 @@ class ImageConverterScreen(ttk.Frame):
         affix_combo.pack(side="left", padx=(0, 8))
         affix_combo.bind("<<ComboboxSelected>>", self._on_affix_change)
 
-        self._affix_text_var = tk.StringVar(value="converted_")
+        self._affix_text_var = tk.StringVar(value="")
         self._affix_entry = tk.Entry(
             rename_ctrl,
             textvariable=self._affix_text_var,
@@ -388,8 +388,12 @@ class ImageConverterScreen(ttk.Frame):
         mode = self._affix_mode_var.get()
         if mode == "None":
             self._affix_entry.config(state="disabled")
-        else:
+        elif mode == "Add Prefix":
             self._affix_entry.config(state="normal")
+            self._affix_text_var.set("converted_")
+        else:  # Add Suffix
+            self._affix_entry.config(state="normal")
+            self._affix_text_var.set("_converted")
 
     def _on_screen_change(self, _e=None) -> None:
         display = self._screen_var.get()
@@ -434,7 +438,7 @@ class ImageConverterScreen(ttk.Frame):
         affix_mode     = self._affix_mode_var.get()
         affix_text     = self._affix_text_var.get() if affix_mode != "None" else ""
         prefix         = affix_text if affix_mode == "Add Prefix" else ""
-        suffix         = affix_text if affix_mode == "Add Suffix"  else ""
+        suffix         = affix_text if affix_mode == "Add Suffix" else ""
         out_dir        = self._out_folder
 
         # Check for existing output files

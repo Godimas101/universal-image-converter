@@ -59,6 +59,12 @@ namespace MahrianeIndustries.LCDInfo
         List<string> excludeIds = new List<string>();
         int subgridScanTick = 0;
         bool compactMode = false;
+        bool toggleScroll = false;
+        bool reverseDirection = false;
+        int scrollSpeed = 60;
+        int scrollLines = 1;
+        int scrollOffset = 0;
+        int ticksSinceLastScroll = 0;
         Sandbox.ModAPI.Ingame.MyShipMass gridMass;
 
         public LCDFarmingSummaryInfo(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
@@ -109,6 +115,26 @@ namespace MahrianeIndustries.LCDInfo
                 CreateConfig();
 
             LoadConfig();
+
+            // Update scroll offset if scrolling is enabled
+            if (toggleScroll)
+            {
+                ticksSinceLastScroll += 10;  // Update10 fires every 10 ticks — must increment by 10
+                if (ticksSinceLastScroll >= scrollSpeed)
+                {
+                    ticksSinceLastScroll = 0;
+                    if (reverseDirection)
+                        scrollOffset -= scrollLines;
+                    else
+                        scrollOffset += scrollLines;
+                }
+            }
+            else
+            {
+                scrollOffset = 0;
+                ticksSinceLastScroll = 0;
+            }
+
             UpdateBlocks();
             Draw();
         }
@@ -146,7 +172,8 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendShowDockedConfig(sb, surfaceData.showDocked);
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
-            sb.AppendLine();
+            ConfigHelpers.AppendScrollingConfig(sb, "FARMING", toggleScroll, reverseDirection, scrollSpeed, scrollLines, 0);
+
             sb.AppendLine("; [ FARMING - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");
             sb.AppendLine($"ViewPortOffsetX={surfaceData.viewPortOffsetX}");
@@ -212,6 +239,15 @@ namespace MahrianeIndustries.LCDInfo
                     if (config.ContainsKey(CONFIG_SECTION_ID, "ShowWaterProduction")) showWaterProduction = config.Get(CONFIG_SECTION_ID, "ShowWaterProduction").ToBoolean(true);
                     if (config.ContainsKey(CONFIG_SECTION_ID, "IceMinAmount")) iceMinAmount = config.Get(CONFIG_SECTION_ID, "IceMinAmount").ToInt32();
 
+                    // Scrolling options (optional; defaults: off, forward, 60 ticks, 1 plot, 5 max)
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ToggleScroll"))
+                        toggleScroll = config.Get(CONFIG_SECTION_ID, "ToggleScroll").ToBoolean(false);
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ReverseDirection"))
+                        reverseDirection = config.Get(CONFIG_SECTION_ID, "ReverseDirection").ToBoolean(false);
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollSpeed"))
+                        scrollSpeed = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollSpeed").ToInt32(60));
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollLines"))
+                        scrollLines = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollLines").ToInt32(1));
                     surfaceData.newLine = new Vector2(0, 30 * surfaceData.textSize);
 
                     if (compactMode)
@@ -480,11 +516,29 @@ namespace MahrianeIndustries.LCDInfo
                     // Sort farm plots alphabetically by custom name
                     MahSorting.SortBlocksByName(farmPlots);
 
-                    // List farm plots with three-line entries
-                    foreach (var plot in farmPlots)
+                    // Each farm plot entry is 4 line-heights: name, badge+hydration, water+growth, blank spacer
+                    const int linesPerEntry = 4;
+                    float lineHeight = 30f * surfaceData.textSize;
+                    float remainingHeight = mySurface.SurfaceSize.Y - position.Y;
+                    int availableDataLines = Math.Max(linesPerEntry, (int)((remainingHeight - (lineHeight * 0.5f)) / lineHeight));
+                    int availableSlots = availableDataLines / linesPerEntry;
+
+                    int totalPlots = farmPlots.Count;
+                    int startIndex = 0;
+
+                    if (toggleScroll && totalPlots > availableSlots)
                     {
-                        if (plot == null) continue;
-                        DrawFarmPlotEntry(ref frame, ref position, plot);
+                        int normalizedOffset = ((scrollOffset % totalPlots) + totalPlots) % totalPlots;
+                        startIndex = normalizedOffset;
+                    }
+
+                    int slotsDrawn = 0;
+                    for (int i = 0; i < totalPlots && slotsDrawn < availableSlots; i++)
+                    {
+                        int plotIndex = (startIndex + i) % totalPlots;
+                        if (farmPlots[plotIndex] == null) continue;
+                        DrawFarmPlotEntry(ref frame, ref position, farmPlots[plotIndex]);
+                        slotsDrawn++;
                     }
                 }
 

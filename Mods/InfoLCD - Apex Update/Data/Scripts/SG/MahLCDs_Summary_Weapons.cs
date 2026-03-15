@@ -133,7 +133,8 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendSubgridUpdateFrequencyConfig(sb, surfaceData.subgridUpdateFrequency);
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
-            sb.AppendLine();
+            ConfigHelpers.AppendScrollingConfig(sb, "WEAPONS", toggleScroll, reverseDirection, scrollSpeed, scrollLines, maxListLines);
+
             sb.AppendLine("; [ WEAPONS - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");
             sb.AppendLine($"ViewPortOffsetX={surfaceData.viewPortOffsetX}");
@@ -197,6 +198,18 @@ namespace MahrianeIndustries.LCDInfo
                     MahUtillities.TryGetConfigBool(config, CONFIG_SECTION_ID, "ShowCustom", ref showCustom, ref configError);
                     MahUtillities.TryGetConfigBool(config, CONFIG_SECTION_ID, "DetailedInfo", ref detailedInfo, ref configError);
                     MahUtillities.TryGetConfigBool(config, CONFIG_SECTION_ID, "UseColors", ref surfaceData.useColors, ref configError);
+
+                    // Scrolling options (optional; defaults: off, forward, 60 ticks, 1 entry, 5 max)
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ToggleScroll"))
+                        toggleScroll = config.Get(CONFIG_SECTION_ID, "ToggleScroll").ToBoolean(false);
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ReverseDirection"))
+                        reverseDirection = config.Get(CONFIG_SECTION_ID, "ReverseDirection").ToBoolean(false);
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollSpeed"))
+                        scrollSpeed = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollSpeed").ToInt32(60));
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollLines"))
+                        scrollLines = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollLines").ToInt32(1));
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "MaxListLines"))
+                        maxListLines = Math.Max(0, config.Get(CONFIG_SECTION_ID, "MaxListLines").ToInt32(5));
 
                     CreateExcludeIdsList();
                 }
@@ -295,6 +308,13 @@ namespace MahrianeIndustries.LCDInfo
         bool configError = false;
         bool compactMode = false;
         bool isStation = false;
+        bool toggleScroll = false;
+        bool reverseDirection = false;
+        int scrollSpeed = 60;
+        int scrollLines = 1;
+        int scrollOffset = 0;
+        int ticksSinceLastScroll = 0;
+        int maxListLines = 5;
         Sandbox.ModAPI.Ingame.MyShipMass gridMass;
 
         public LCDWeaponsSummaryInfo(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
@@ -321,6 +341,25 @@ namespace MahrianeIndustries.LCDInfo
                 CreateConfig();
 
             LoadConfig();
+
+            // Update scroll offset if scrolling is enabled
+            if (toggleScroll)
+            {
+                ticksSinceLastScroll += 10;  // Update10 fires every 10 ticks — must increment by 10
+                if (ticksSinceLastScroll >= scrollSpeed)
+                {
+                    ticksSinceLastScroll = 0;
+                    if (reverseDirection)
+                        scrollOffset -= scrollLines;
+                    else
+                        scrollOffset += scrollLines;
+                }
+            }
+            else
+            {
+                scrollOffset = 0;
+                ticksSinceLastScroll = 0;
+            }
 
             UpdateBlocksAndInventories();
             UpdateContents();
@@ -617,17 +656,29 @@ namespace MahrianeIndustries.LCDInfo
                 SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, "Settings", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
                 position += surfaceData.newLine;
 
-                foreach (IMyLargeInteriorTurret turret in interiorTurrets)
                 {
-                    if (turret == null) continue;
+                    float lineHeight = 30f * surfaceData.textSize;
+                    float currentY = position.Y - surfaceData.viewPortOffsetY;
+                    float remainingHeight = mySurface.SurfaceSize.Y - currentY;
+                    int availableSlots = Math.Max(1, (int)(remainingHeight / (lineHeight * 3)));
+                    if (maxListLines > 0) availableSlots = Math.Min(availableSlots, maxListLines);
 
-                    // Check if there's enough space for a full turret (3 lines)
-                    spaceNeeded = 3 * surfaceData.newLine.Y;
-                    spaceAvailable = viewportBottom - position.Y;
-                    if (spaceAvailable < spaceNeeded)
-                        break; // Stop rendering if turret won't fit completely
+                    int total = interiorTurrets.Count;
+                    int startIndex = 0;
+                    if (toggleScroll && total > availableSlots)
+                    {
+                        int normalizedOffset = ((scrollOffset % total) + total) % total;
+                        startIndex = normalizedOffset;
+                    }
 
-                    DrawDetailedTurretSprite(ref frame, ref position, turret);
+                    int slotsDrawn = 0;
+                    for (int i = 0; i < total && slotsDrawn < availableSlots; i++)
+                    {
+                        var turret = interiorTurrets[(startIndex + i) % total];
+                        if (turret == null) continue;
+                        DrawDetailedTurretSprite(ref frame, ref position, turret);
+                        slotsDrawn++;
+                    }
                 }
                 position += surfaceData.newLine;
             }
@@ -693,17 +744,31 @@ namespace MahrianeIndustries.LCDInfo
                 SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, "Settings", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
                 position += surfaceData.newLine;
 
-                foreach (IMyLargeTurretBase turret in turrets)
+                // Each turret entry = 3 lines; calculate available slots from remaining screen space
+                const int turretLinesPerEntry = 3;
                 {
-                    if (turret == null) continue;
+                    float lineHeight = 30f * surfaceData.textSize;
+                    float currentY = position.Y - surfaceData.viewPortOffsetY;
+                    float remainingHeight = mySurface.SurfaceSize.Y - currentY;
+                    int availableSlots = Math.Max(1, (int)(remainingHeight / (lineHeight * turretLinesPerEntry)));
+                    if (maxListLines > 0) availableSlots = Math.Min(availableSlots, maxListLines);
 
-                    // Check if there's enough space for a full turret (3 lines)
-                    spaceNeeded = 3 * surfaceData.newLine.Y;
-                    spaceAvailable = viewportBottom - position.Y;
-                    if (spaceAvailable < spaceNeeded)
-                        break; // Stop rendering if turret won't fit completely
+                    int total = turrets.Count;
+                    int startIndex = 0;
+                    if (toggleScroll && total > availableSlots)
+                    {
+                        int normalizedOffset = ((scrollOffset % total) + total) % total;
+                        startIndex = normalizedOffset;
+                    }
 
-                    DrawDetailedTurretSprite(ref frame, ref position, turret);
+                    int slotsDrawn = 0;
+                    for (int i = 0; i < total && slotsDrawn < availableSlots; i++)
+                    {
+                        var turret = turrets[(startIndex + i) % total];
+                        if (turret == null) continue;
+                        DrawDetailedTurretSprite(ref frame, ref position, turret);
+                        slotsDrawn++;
+                    }
                 }
                 position += surfaceData.newLine;
             }
@@ -772,17 +837,26 @@ namespace MahrianeIndustries.LCDInfo
                 SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, "Settings", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
                 position += surfaceData.newLine;
 
-                foreach (IMyTurretControlBlock controller in customTurretControllers)
                 {
-                    if (controller == null) continue;
+                    float lineHeight = 30f * surfaceData.textSize;
+                    float currentY = position.Y - surfaceData.viewPortOffsetY;
+                    float remainingHeight = mySurface.SurfaceSize.Y - currentY;
+                    int availableSlots = Math.Max(1, (int)(remainingHeight / (lineHeight * 3)));
+                    if (maxListLines > 0) availableSlots = Math.Min(availableSlots, maxListLines);
+                    int total = customTurretControllers.Count;
+                    int startIndex = 0;
+                    if (toggleScroll && total > availableSlots)
+                    {
+                        int normalizedOffset = ((scrollOffset % total) + total) % total;
+                        startIndex = normalizedOffset;
+                    }
+                    int slotsDrawn = 0;
+                    for (int i = 0; i < total && slotsDrawn < availableSlots; i++)
+                    {
+                        var controller = customTurretControllers[(startIndex + i) % total];
+                        if (controller == null) continue;
 
-                    // Check if there's enough space for a full controller (3 lines)
-                    spaceNeeded = 3 * surfaceData.newLine.Y;
-                    spaceAvailable = viewportBottom - position.Y;
-                    if (spaceAvailable < spaceNeeded)
-                        break; // Stop rendering if controller won't fit completely
-
-                    var controllerName = controller.CustomName.Length > maxNameLength ? controller.CustomName.Substring(0, maxNameLength) : controller.CustomName;
+                        var controllerName = controller.CustomName.Length > maxNameLength ? controller.CustomName.Substring(0, maxNameLength) : controller.CustomName;
 
                     _cachedTurretTools.Clear();
                     controller.GetTools(_cachedTurretTools);
@@ -885,6 +959,8 @@ namespace MahrianeIndustries.LCDInfo
                         position += surfaceData.newLine;
                     }
                     position += surfaceData.newLine;
+                        slotsDrawn++;
+                    }
                 }
                 position += surfaceData.newLine;
             }
@@ -1083,15 +1159,26 @@ namespace MahrianeIndustries.LCDInfo
                 SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, "", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
                 position += surfaceData.newLine;
 
-                foreach (IMyUserControllableGun cannon in cannons)
                 {
-                    if (cannon == null) continue;
+                    float lineHeight = 30f * surfaceData.textSize;
+                    float currentY = position.Y - surfaceData.viewPortOffsetY;
+                    float remainingHeight = mySurface.SurfaceSize.Y - currentY;
+                    int availableSlots = Math.Max(1, (int)(remainingHeight / (lineHeight * 3)));
+                    if (maxListLines > 0) availableSlots = Math.Min(availableSlots, maxListLines);
 
-                    // Check if there's enough space for a full cannon (3 lines)
-                    spaceNeeded = 3 * surfaceData.newLine.Y;
-                    spaceAvailable = viewportBottom - position.Y;
-                    if (spaceAvailable < spaceNeeded)
-                        break; // Stop rendering if cannon won't fit completely
+                    int total = cannons.Count;
+                    int startIndex = 0;
+                    if (toggleScroll && total > availableSlots)
+                    {
+                        int normalizedOffset = ((scrollOffset % total) + total) % total;
+                        startIndex = normalizedOffset;
+                    }
+
+                    int slotsDrawn = 0;
+                    for (int i = 0; i < total && slotsDrawn < availableSlots; i++)
+                    {
+                        var cannon = cannons[(startIndex + i) % total];
+                        if (cannon == null) continue;
 
                     var cannonName = cannon.CustomName.Length > maxNameLength ? cannon.CustomName.Substring(0, maxNameLength) : cannon.CustomName;
                     var currentVolume = (float)cannon.GetInventory(0).CurrentVolume;
@@ -1168,6 +1255,8 @@ namespace MahrianeIndustries.LCDInfo
                     SurfaceDrawer.DrawHalfBar(ref frame, position, surfaceData, TextAlignment.LEFT, currentVolume, maximumVolume, Unit.Percent, !surfaceData.useColors ? surfaceData.surface.ScriptForegroundColor : Color.Orange);
                     SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
                     position += surfaceData.newLine;
+                        slotsDrawn++;
+                    }
                 }
 
                 position += surfaceData.newLine;

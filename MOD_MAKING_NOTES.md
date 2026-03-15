@@ -42,18 +42,37 @@ Screens with multiple distinct categories needing independent space management.
 | **GasProduction** | ⭐ Highly Compatible | ✅ Done | Fixed bars (H2/O2/Ice) always visible; generator/farm lists scroll with MaxListLines |
 | **LifeSupport** | ⭐ Highly Compatible | ✅ Done | Fixed bars (Battery/O2/H2/Ice) stay pinned; air vents list scrolls. No MaxListLines — position-based space calc |
 | **Cargo** | ⭐ Highly Compatible | ✅ Done | Many categories (Ore, Ingots, Components, Ammo, Food, Seeds, etc.). Flat category list; no MaxListLines — position-based space calc |
-| **Container** | ⭐ Highly Compatible | ⏳ Pending | List of containers with capacity bars, similar structure to Cargo |
-| **Farming** | ⭐ Highly Compatible | ⏳ Pending | Fixed summary + bars + scrolling detail lists (farm plots, irrigation) |
+| **Container** | ⭐ Highly Compatible | ✅ Done | Single flat list of containers. No MaxListLines — single list, screen height caps naturally |
+| **Farming** | ⭐ Highly Compatible | ✅ Done | Fixed header + ice/water bars always visible; farm plot list scrolls. **4 lines per entry** (name, badge+hydration, water+growth, blank spacer). linesPerEntry=4, no MaxListLines |
+| **Weapons** | ✅ Compatible (overhaul) | ✅ Done | Per-category scrolling with shared scroll offset. **3 lines per weapon entry** (badge+name, ammo type, ammo bar). Compact mode already works fine. Only detailed mode scrolls |
+
+#### ✅ NEWLY COMPATIBLE (post-audit)
+
+| Screen | Compatibility | Status | Notes |
+|---|---|---|---|
+| **AirlockMonitor** | ⭐ Simple | ⏳ Pending | Door list = 1 line per door. Air vent = single pressure bar (always visible, no scrolling needed). SearchId defaults to "Airlock" — monitors all doors/vents matching that name. Approach 1, door list only |
+| **DetailedInfo** | ⭐ Simple | ✅ Done | Displays one block's DetailedInfo as scrollable text lines. Approach 1 (flat line list, no MaxListLines). Update100 screen — tick increment is `+= 100`. BuildInfo data NOT accessible (see Known Issues) |
+| **GridInfo** | ⚠️ Partial | ✅ Done | Jump drives pinned at top (always visible). Connector list scrolls below. Approach 1 for connector section. Pre-filters connectors (vessels hide unconnected ones) before scroll logic |
 
 #### ❌ NOT SUITABLE FOR SCROLLING
 
 | Screen | Reason |
 |---|---|
-| **Weapons** | Complex badge-style visual layout, not a linear list |
-| **Systems** | Fixed dashboard design — show all categories at once by design |
-| **GridInfo** | Summary stats only, no lists |
-| **DetailedInfo** | Single block focus, not a list |
-| **AirlockMonitor** | Typically too few items to need scrolling |
+| **Systems** | Purely fixed dashboard — shows category-level integrity summaries (Power, Movement, Weapons, etc.), never individual blocks. At most ~15 categories, always fits on screen. Adding scrolling would require a full redesign to show per-block detail, which is out of scope |
+
+#### 🔑 KEY DISCOVERY: Multi-Line Per Entry Scrolling
+
+Originally we assumed scrolling only worked for single-line-per-item lists (like Items, Ammo, etc.). The Farming screen proved this wrong.
+
+**The insight:** As long as each entry takes a **uniform, known number of lines**, scrolling works perfectly. The scroll unit becomes "per entry" instead of "per line":
+
+```csharp
+const int linesPerEntry = 4;  // however many lines each entry takes
+int availableSlots = availableDataLines / linesPerEntry;
+// scroll by entry index, not by line index
+```
+
+This opens up any screen where blocks are displayed with consistent multi-line layouts — including Weapons (3 lines/entry) and potentially others.
 
 #### Approach 1 vs Approach 2 Decision Guide
 
@@ -88,13 +107,13 @@ Screens with multiple distinct categories needing independent space management.
 | GasProduction | Approach 2 | ✅ Done |
 | Cargo | Approach 2 (no MaxListLines) | ✅ Done |
 | LifeSupport | Approach 2 (no MaxListLines) | ✅ Done |
-| Container | Approach 2 | ⏳ Pending |
-| Farming | Approach 2 | ⏳ Pending |
-| Weapons | — | ⏸ Skipped |
-| Systems | — | ⏸ Skipped |
-| GridInfo | — | ⏸ Skipped |
-| DetailedInfo | — | ⏸ Skipped |
-| AirlockMonitor | — | ⏸ Skipped |
+| Container | Approach 2 (no MaxListLines) | ✅ Done |
+| Farming | Approach 2 (no MaxListLines, linesPerEntry=4) | ✅ Done |
+| Weapons | Approach 2 (linesPerEntry=3, shared scroll offset) | ✅ Done |
+| AirlockMonitor | Approach 1 (door list, 1 line/entry) | ⏳ Pending |
+| DetailedInfo | Approach 1 (text line array, Update100) | ✅ Done |
+| GridInfo | Approach 1 (connector list, jump drives pinned) | ✅ Done |
+| Systems | — | ⏸ Skipped (no individual block list) |
 
 ---
 
@@ -135,9 +154,9 @@ MaxListLines=0
 ToggleScroll=False
 ```
 
-**Single List Screens (Approach 1):** Items, Components, Ingots, Ores, Ammo, DoorMonitor, DamageMonitor — no `MaxListLines`.
+**Single List Screens (Approach 1):** Items, Components, Ingots, Ores, Ammo, DoorMonitor, DamageMonitor, Container, Farming, AirlockMonitor, DetailedInfo, GridInfo — no `MaxListLines`.
 
-**Multi-Category Screens (Approach 2):** Power, Production, GasProduction, Cargo, LifeSupport — `MaxListLines` limits items shown per category.
+**Multi-Category Screens (Approach 2):** Power, Production, GasProduction, Cargo, LifeSupport, Weapons — `MaxListLines` limits items shown per category.
 
 ---
 
@@ -260,6 +279,19 @@ for (int i = 0; i < totalDataLines && linesDrawn < availableDataLines; i++)
 
 ---
 
+**Update100 Tick Increment**
+- **Rule:** DetailedInfo uses `ScriptUpdate.Update100` (fires every 100 game ticks). Must use `ticksSinceLastScroll += 100`, NOT `+= 10`.
+- `scrollSpeed=60` on an Update100 screen means it scrolls on every single update call (~1.67s/line). Users may want `ScrollSpeed=200`+ for reading screens.
+
+**BuildInfo Custom Info Not Accessible from Scripts**
+- **Problem:** BuildInfo's extra block details (Type, Inventory, Ammo, etc.) don't appear in `block.DetailedInfo` when read from a script.
+- **Root cause:** BuildInfo subscribes to `block.AppendingCustomInfo` only while the player has that block open in the terminal panel (`newBlock.AppendingCustomInfo += CustomInfo` on terminal select, `oldBlock.AppendingCustomInfo -= CustomInfo` on deselect). When the terminal is closed, BuildInfo is unsubscribed — so calling `block.RefreshCustomInfo()` from a script fires no callbacks and `CustomInfo` stays empty.
+- **Conclusion:** Cannot reliably display BuildInfo data from a text surface script. The feature was investigated and removed from DetailedInfo.
+
+**MaxListLines=0 for Single-List Screens**
+- **Rule:** Single-list screens (Container, Farming, DetailedInfo, GridInfo, AirlockMonitor) should pass `maxListLines: 0` to `AppendScrollingConfig()`. The helper now skips writing `MaxListLines` entirely when the value is 0, keeping the config clean.
+- Multi-category screens (Weapons, Power, Production, etc.) should pass their actual `maxListLines` field.
+
 #### ConfigHelpers.AppendScrollingConfig() Reference
 
 ```csharp
@@ -329,6 +361,25 @@ The SG Core mods form the base gameplay overhaul. Individual notes go here as th
 - **Fix:** Default `scrollSpeed` corrected from `5` → `60` (with `++` bug, `5` meant ~0.8s; with `+= 10` fix, `5` would fire every frame since 10 ≥ 5 immediately)
 - **Screens fixed:** Ammo, Components, Ingots, Ores (Items and Power were already correct)
 - **Also added:** Dedicated server guard to `DetailedInfo.cs` Run()
+
+### 2026-03-15 (Session 2) — Weapons, DetailedInfo, GridInfo Done + Airlock Researched
+
+- **Weapons scrolling completed:** All four detailed draw methods updated (turrets, interior turrets, cannons, custom turret controllers). Each uses linesPerEntry=3 with shared scrollOffset/maxListLines. Previous session left DrawCannonsDetailedSprite with a missing `}` for the scope block and missing `slotsDrawn++` — fixed.
+- **DetailedInfo scrolling implemented:** Builds flat display line list first (applying word wrap), then scrolls through it. Update100 screen — `ticksSinceLastScroll += 100`. No MaxListLines.
+- **BuildInfo investigation:** Attempted to expose BuildInfo's extra block data via `RefreshCustomInfo()` + `CustomInfo`. Found that BuildInfo only subscribes to `AppendingCustomInfo` while the block is selected in the terminal panel — unsubscribes on deselect. Calling `RefreshCustomInfo()` from a script fires nothing. Feature removed from DetailedInfo. See Known Issues.
+- **GridInfo scrolling implemented:** Jump drives moved to pin above connector list (always visible). Connector list pre-filtered (vessels hide unconnected), then scrolls with Approach 1. Viewport-aware remainingHeight calculation using `(mySurface.TextureSize.Y - mySurface.SurfaceSize.Y) / 2f`.
+- **AppendScrollingConfig fix:** Now skips writing `MaxListLines` entirely when `maxListLines == 0`. Single-list screens (Container, Farming, DetailedInfo, GridInfo) pass `0` explicitly.
+- **Farming compile bug caught:** `maxListLines` variable referenced in `AppendScrollingConfig` call after field was removed — silent compile failure if cached. Fixed by passing `0` literally.
+- **AirlockMonitor fully understood:** Door list (1 line/door) + single pressure bar from first matching air vent. SearchId matches block name prefix (default: "Airlock"). Straightforward Approach 1, door list only. Ready to implement next session.
+
+### 2026-03-15 — Multi-Line Entry Scrolling Discovery + Container & Farming Done
+
+- **Container scrolling implemented:** Single flat list. Each entry = 1 line (cargo containers) or 1+N lines (production blocks with multiple inventories). Built a flat `rowBlocks`/`rowIndices` list to handle mixed heights. No MaxListLines — screen height caps naturally. Scroll by row index.
+- **Farming scrolling implemented:** Fixed section (header, ice bar, water bar, H2O production) always visible. Farm plot list scrolls. Each entry = **4 lines** (name, badge+hydration, water+growth, blank spacer). `linesPerEntry=4`, `availableSlots = availableDataLines / 4`. No MaxListLines.
+- **Key discovery:** Multi-line-per-entry scrolling works. Any screen with uniform entry height can scroll — scroll unit is "per entry" not "per line". This overturns the earlier assumption that only single-line-per-item screens were compatible.
+- **Weapons screen re-evaluated:** Now planned as Approach 2 per-category scrolling with shared scroll offset. Each weapon entry = **3 lines** in detailed mode. Compact mode already works; only detailed draw methods need updating.
+- **Bug caught during implementation:** `AppendScrollingConfig` call in Container was still passing `maxListLines` variable after the field was removed — caused compile error. Fixed by dropping the argument (uses default).
+- **Typo debugging:** Farming ToggleScroll=True was entered as "Ttrue" — `ToBoolean("Ttrue")` returns false silently. Scrolling appeared broken. Lesson: always check manually-typed config values for typos first.
 
 ### 2026-03-14 — CustomData Section Header Standardization
 - **Change:** All CustomData section headers now follow consistent `; [ SCREENNAME - CATEGORY ]` pattern

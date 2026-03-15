@@ -87,6 +87,9 @@ namespace MahrianeIndustries.LCDInfo
             ConfigHelpers.AppendUseColorsConfig(sb, surfaceData.useColors);
 
             sb.AppendLine();
+            ConfigHelpers.AppendScrollingConfig(sb, "GRIDINFO", toggleScroll, reverseDirection, scrollSpeed, scrollLines, 0);
+
+            sb.AppendLine();
             sb.AppendLine("; [ GRIDINFO - LAYOUT OPTIONS ]");
             sb.AppendLine($"TextSize={surfaceData.textSize}");
             sb.AppendLine($"ViewPortOffsetX={surfaceData.viewPortOffsetX}");
@@ -143,6 +146,16 @@ namespace MahrianeIndustries.LCDInfo
                         configError = true;
 
                     CreateExcludeIdsList();
+
+                    // Read scrolling options
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ToggleScroll"))
+                        toggleScroll = config.Get(CONFIG_SECTION_ID, "ToggleScroll").ToBoolean(false);
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ReverseDirection"))
+                        reverseDirection = config.Get(CONFIG_SECTION_ID, "ReverseDirection").ToBoolean(false);
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollSpeed"))
+                        scrollSpeed = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollSpeed").ToInt32(60));
+                    if (config.ContainsKey(CONFIG_SECTION_ID, "ScrollLines"))
+                        scrollLines = Math.Max(1, config.Get(CONFIG_SECTION_ID, "ScrollLines").ToInt32(1));
 
                     // Is Corner LCD?
                     if (compactMode)
@@ -211,6 +224,12 @@ namespace MahrianeIndustries.LCDInfo
         bool configError = false;
         bool compactMode = false;
         bool isStation = false;
+        bool toggleScroll = false;
+        bool reverseDirection = false;
+        int scrollSpeed = 60;
+        int scrollLines = 1;
+        int scrollOffset = 0;
+        int ticksSinceLastScroll = 0;
         Sandbox.ModAPI.Ingame.MyShipMass gridMass;
         
         public LCDGridInfoSummary(IMyTextSurface surface, IMyCubeBlock block, Vector2 size) : base(surface, block, size)
@@ -236,6 +255,24 @@ namespace MahrianeIndustries.LCDInfo
                 CreateConfig();
 
             LoadConfig();
+
+            if (toggleScroll)
+            {
+                ticksSinceLastScroll += 10;
+                if (ticksSinceLastScroll >= scrollSpeed)
+                {
+                    ticksSinceLastScroll = 0;
+                    if (reverseDirection)
+                        scrollOffset -= scrollLines;
+                    else
+                        scrollOffset += scrollLines;
+                }
+            }
+            else
+            {
+                scrollOffset = 0;
+                ticksSinceLastScroll = 0;
+            }
 
             UpdateBlocks();
 
@@ -342,28 +379,52 @@ namespace MahrianeIndustries.LCDInfo
                     position += surfaceData.newLine;
                 }
 
+                SurfaceDrawer.DrawJumpDriveSprite(ref frame, ref position, surfaceData, jumpdrives, isStation, compactMode);
+
                 if (surfaceData.showDocked)
                 {
                     if (!compactMode)
                     {
+                        // Build filtered list of visible connectors
+                        var displayConnectors = new List<IMyShipConnector>();
                         foreach (IMyShipConnector connector in connectors)
                         {
                             if (connector == null) continue;
+                            Sandbox.ModAPI.Ingame.MyShipConnectorStatus status = connector.Status;
+                            if (isStation || status != Sandbox.ModAPI.Ingame.MyShipConnectorStatus.Unconnected)
+                                displayConnectors.Add(connector);
+                        }
+
+                        // Calculate available slots
+                        float lineHeight = 30f * surfaceData.textSize;
+                        float viewportTop = (mySurface.TextureSize.Y - mySurface.SurfaceSize.Y) / 2f;
+                        float remainingHeight = mySurface.SurfaceSize.Y - (position.Y - viewportTop);
+                        int availableSlots = Math.Max(1, (int)(remainingHeight / lineHeight));
+
+                        int total = displayConnectors.Count;
+                        int startIndex = 0;
+                        if (toggleScroll && total > availableSlots)
+                        {
+                            int normalizedOffset = ((scrollOffset % total) + total) % total;
+                            startIndex = normalizedOffset;
+                        }
+
+                        int slotsDrawn = 0;
+                        for (int i = 0; i < total && slotsDrawn < availableSlots; i++)
+                        {
+                            IMyShipConnector connector = displayConnectors[(startIndex + i) % total];
                             Sandbox.ModAPI.Ingame.MyShipConnectorStatus status = connector.Status;
 
                             string state = $"{(status == Sandbox.ModAPI.Ingame.MyShipConnectorStatus.Connectable ? "Ready    " : status == Sandbox.ModAPI.Ingame.MyShipConnectorStatus.Connected ? "Locked    " : "Unlocked  ")}";
                             string connectedGridId = $"{(connector.IsConnected ? $"<{(connector.OtherConnector.CubeGrid as IMyCubeGrid).CustomName}>" : "")}";
                             Color stateColor = !surfaceData.useColors ? surfaceData.surface.ScriptForegroundColor : status == Sandbox.ModAPI.Ingame.MyShipConnectorStatus.Connectable ? Color.Orange : status == Sandbox.ModAPI.Ingame.MyShipConnectorStatus.Connected ? Color.GreenYellow : Color.Yellow;
 
-                            // Only show all connectors on stations. On Vessels only show actually connected.
-                            if (isStation || status != Sandbox.ModAPI.Ingame.MyShipConnectorStatus.Unconnected)
-                            {
-                                SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"{(" " + connector.CustomName + ":")}", TextAlignment.LEFT, surfaceData.surface.ScriptForegroundColor);
-                                SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"{connectedGridId}   ", TextAlignment.CENTER, !surfaceData.useColors ? surfaceData.surface.ScriptForegroundColor : Color.Yellow);
-                                SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"[                 ]", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
-                                SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $" {state}", TextAlignment.RIGHT, stateColor);
-                                position += surfaceData.newLine;
-                            }
+                            SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"{(" " + connector.CustomName + ":")}", TextAlignment.LEFT, surfaceData.surface.ScriptForegroundColor);
+                            SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"{connectedGridId}   ", TextAlignment.CENTER, !surfaceData.useColors ? surfaceData.surface.ScriptForegroundColor : Color.Yellow);
+                            SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $"[                 ]", TextAlignment.RIGHT, surfaceData.surface.ScriptForegroundColor);
+                            SurfaceDrawer.WriteTextSprite(ref frame, position, surfaceData, $" {state}", TextAlignment.RIGHT, stateColor);
+                            position += surfaceData.newLine;
+                            slotsDrawn++;
                         }
                         position += surfaceData.newLine;
                     }
@@ -384,7 +445,6 @@ namespace MahrianeIndustries.LCDInfo
                 }
             }
 
-            SurfaceDrawer.DrawJumpDriveSprite(ref frame, ref position, surfaceData, jumpdrives, isStation, compactMode);
         }
     }
 }

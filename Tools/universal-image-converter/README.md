@@ -21,6 +21,8 @@ Two tools in one launcher:
 
 **Image to LCD** — for players. Converts any image to a text string you paste directly into an in-game LCD panel. No mods, no files, nothing to install.
 
+<img src="https://imgur.com/a/BvC0hXZ" alt="Alt text" width="500">
+
 ---
 
 ## Image to DDS — Quick Start

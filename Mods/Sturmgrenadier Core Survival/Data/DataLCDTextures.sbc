@@ -14,7 +14,7 @@
        <TypeId>LCDTextureDefinition</TypeId>
        <SubtypeId>[SG] Food Production</SubtypeId>
      </Id>
-    <TexturePath>Textures\Models\foodProductoin.dds</TexturePath>
+    <TexturePath>Textures\Models\foodProduction.dds</TexturePath>
 	</LCDTextureDefinition>
     <LCDTextureDefinition>
      <Id>

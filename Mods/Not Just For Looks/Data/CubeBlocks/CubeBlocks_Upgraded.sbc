@@ -2115,7 +2115,7 @@
 					<MinAllowed>0</MinAllowed>
 				</StaticMode>
 				<DynamicMode>
-					<PlacementMode>Volum  etric</PlacementMode>
+					<PlacementMode>Volumetric</PlacementMode>
 					<MaxAllowed>0.2</MaxAllowed>
 					<MinAllowed>0</MinAllowed>
 				</DynamicMode>

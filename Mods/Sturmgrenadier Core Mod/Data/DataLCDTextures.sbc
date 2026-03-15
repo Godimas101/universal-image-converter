@@ -112,7 +112,7 @@
        <TypeId>LCDTextureDefinition</TypeId>
        <SubtypeId>[SG] NC Logo</SubtypeId>
      </Id>
-    <TexturePath>Textures\Models\NC-Logo.dds</TexturePath>
+    <TexturePath>Textures\Models\Nc-Logo.dds</TexturePath>
    </LCDTextureDefinition>
    <LCDTextureDefinition>
      <Id>

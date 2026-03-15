@@ -48,7 +48,7 @@
           </DeconstructId>
         </Component>
         <Component Subtype="Computer" Count="225" /> <!-- Updated from 200 -->
-		<Component Subtype="Superconductor" Count="10" > <!-- Additional cost -->
+		<Component Subtype="Superconductor" Count="10" /> <!-- Additional cost -->
         <Component Subtype="Construction" Count="80" /> <!-- Updated from 200 -->
         <Component Subtype="SteelPlate" Count="170" /> <!-- Updated from 480 -->
       </Components>
@@ -121,7 +121,7 @@
           </DeconstructId>
         </Component>
         <Component Subtype="Computer" Count="425" /> <!-- Updated from 400 -->
-		<Component Subtype="Superconductor" Count="10" > <!-- Additional cost -->
+		<Component Subtype="Superconductor" Count="10" /> <!-- Additional cost -->
         <Component Subtype="Construction" Count="100" /> <!-- Updated from 500 -->
         <Component Subtype="SteelPlate" Count="390" /> <!-- Updated from 960 -->
       </Components>
@@ -194,7 +194,7 @@
           </DeconstructId>
         </Component>
         <Component Subtype="Computer" Count="72" /> <!-- Updated from 100 -->
-		<Component Subtype="Superconductor" Count="5" > <!-- Additional cost -->
+		<Component Subtype="Superconductor" Count="5" /> <!-- Additional cost -->
         <Component Subtype="Construction" Count="60" /> <!-- Updated from 150 -->
         <Component Subtype="SteelPlate" Count="104" /> <!-- Updated from 100 -->
       </Components>
@@ -265,7 +265,7 @@
           </DeconstructId>
         </Component>
         <Component Subtype="Computer" Count="595" /> <!-- Updated from 200 -->
-		<Component Subtype="Superconductor" Count="5" > <!-- Additional cost -->
+		<Component Subtype="Superconductor" Count="5" /> <!-- Additional cost -->
         <Component Subtype="Construction" Count="500" /> <!-- Updated from 180 -->
         <Component Subtype="SteelPlate" Count="1000" /> <!-- Updated from 300 -->
       </Components>

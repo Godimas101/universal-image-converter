@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import winsound as _winsound
 from pathlib import Path
 
 import tkinter as tk
@@ -105,6 +106,7 @@ class ConverterScreen(ttk.Frame):
         self._files: list[Path]       = []
         self._out_folder: Path | None = None
         self._converting              = False
+        self._previewing              = False
         self._q: queue.Queue          = queue.Queue()
 
         self._ffmpeg_ok,    self._ffmpeg_path    = check_ffmpeg()
@@ -166,6 +168,8 @@ class ConverterScreen(ttk.Frame):
         btn_col.pack(side="right", fill="y", padx=8, pady=6)
         self._se_btn(btn_col, "SELECT", self._on_select, 8).pack(pady=(0, 6))
         self._se_btn(btn_col, "CLEAR",  self._on_clear,  8).pack()
+        self._preview_btn = self._se_btn(btn_col, "\u25b6 PLAY", self._on_preview, 8)
+        self._preview_btn.pack(pady=(6, 0))
 
         self._file_count_var = tk.StringVar(value="")
         ttk.Label(self, textvariable=self._file_count_var,
@@ -297,6 +301,58 @@ class ConverterScreen(ttk.Frame):
     # -----------------------------------------------------------------------
     # Helpers
     # -----------------------------------------------------------------------
+
+    # -----------------------------------------------------------------------
+    # Preview playback
+    # -----------------------------------------------------------------------
+
+    def _on_preview(self):
+        if self._previewing:
+            try:
+                _winsound.PlaySound(None, _winsound.SND_PURGE)
+            except Exception:
+                pass
+            return
+        idx = self._listbox.curselection()
+        if not idx:
+            self._log("Select a file in the list to preview.", "warn")
+            return
+        path = self._files[idx[0]]
+        self._previewing = True
+        self._preview_btn.config(text="\u25a0 STOP")
+        threading.Thread(target=self._preview_thread, args=(path,), daemon=True).start()
+
+    def _preview_thread(self, path: Path):
+        tmp_path = None
+        try:
+            if path.suffix.lower() == ".wav":
+                wav_path = str(path)
+            else:
+                if not self._ffmpeg_ok:
+                    self._q.put(("log", "ffmpeg required to preview non-WAV files.", "warn"))
+                    return
+                tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+                tmp.close()
+                tmp_path = tmp.name
+                r = subprocess.run(
+                    [self._ffmpeg_path, "-y", "-i", str(path), tmp_path],
+                    capture_output=True,
+                )
+                if r.returncode != 0:
+                    self._q.put(("log", "Preview: could not decode file.", "error"))
+                    return
+                wav_path = tmp_path
+            _winsound.PlaySound(wav_path, _winsound.SND_FILENAME)
+        except Exception as exc:
+            self._q.put(("log", f"Preview error: {exc}", "error"))
+        finally:
+            self._previewing = False
+            self.after(0, lambda: self._preview_btn.config(text="\u25b6 PLAY"))
+            if tmp_path:
+                try:
+                    Path(tmp_path).unlink(missing_ok=True)
+                except Exception:
+                    pass
 
     def _se_btn(self, parent, text, cmd, width=None):
         kw = {"width": width} if width else {}

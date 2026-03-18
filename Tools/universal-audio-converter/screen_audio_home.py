@@ -11,6 +11,7 @@ Four nav-card buttons route the user to:
 
 import tkinter as tk
 from tkinter import ttk
+import webbrowser
 
 import se_audio_theme as T
 
@@ -76,8 +77,35 @@ class HomeScreen(ttk.Frame):
         # ── Footer ───────────────────────────────────────────────────────────
         T.separator(self, pady=(14, 0))
 
-        ttk.Label(self, text="Made with \u2665 by Godimas and Claude",
-                  style="Muted.TLabel").pack(anchor="center", pady=(6, 0))
+        footer = tk.Frame(self, bg=T.BG)
+        footer.pack(anchor="center", pady=(6, 0))
+
+        tk.Label(footer, text="Made with \u2665 by ",
+                 bg=T.BG, fg=T.MUTED,
+                 font=("Courier New", 8)).pack(side="left")
+
+        godimas = tk.Label(footer, text="Godimas",
+                           bg=T.BG, fg=T.MUTED,
+                           font=("Courier New", 8, "underline"),
+                           cursor="hand2")
+        godimas.pack(side="left")
+        godimas.bind("<Button-1>", lambda _e: webbrowser.open(
+            "https://steamcommunity.com/id/godimas/myworkshopfiles"))
+        godimas.bind("<Enter>", lambda _e: godimas.config(fg=T.CYAN))
+        godimas.bind("<Leave>", lambda _e: godimas.config(fg=T.MUTED))
+
+        tk.Label(footer, text=" and ",
+                 bg=T.BG, fg=T.MUTED,
+                 font=("Courier New", 8)).pack(side="left")
+
+        claude = tk.Label(footer, text="Claude",
+                          bg=T.BG, fg=T.MUTED,
+                          font=("Courier New", 8, "underline"),
+                          cursor="hand2")
+        claude.pack(side="left")
+        claude.bind("<Button-1>", lambda _e: webbrowser.open("https://claude.ai"))
+        claude.bind("<Enter>", lambda _e: claude.config(fg=T.CYAN))
+        claude.bind("<Leave>", lambda _e: claude.config(fg=T.MUTED))
 
         ttk.Label(self, text="v1.0  \u00b7  SE Audio Converter",
                   style="Muted.TLabel").pack(anchor="center", pady=(4, 10))

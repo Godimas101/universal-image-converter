@@ -490,7 +490,7 @@ class EditorScreen(ttk.Frame):
 
         # ── Log ───────────────────────────────────────────────────────────────
         log_frame = ttk.Frame(self, style="Panel.TFrame")
-        log_frame.pack(fill="x", padx=16, pady=(0, 14))
+        log_frame.pack(fill="both", expand=True, padx=16, pady=(0, 14))
 
         log_hdr = ttk.Frame(log_frame, style="Panel.TFrame")
         log_hdr.pack(fill="x", padx=6, pady=(4, 2))
@@ -510,7 +510,7 @@ class EditorScreen(ttk.Frame):
                                style="SE.Vertical.TScrollbar")
         self._log_text.config(yscrollcommand=log_sb.set)
         log_sb.pack(side="right", fill="y")
-        self._log_text.pack(fill="x", padx=6, pady=(0, 6))
+        self._log_text.pack(fill="both", expand=True, padx=6, pady=(0, 6))
 
     def _build_edit_toolbar(self):
         toolbar = tk.Frame(self, bg=T.BG)

@@ -282,6 +282,12 @@ class WaveformCanvas(tk.Canvas):
         self._redraw()
         self._fire_selection()
 
+    def clear_selection(self) -> None:
+        self._sel_start_px = 0
+        self._sel_end_px   = 0
+        self._redraw()
+        self._fire_selection()
+
     # -----------------------------------------------------------------------
 
     def _on_resize(self, event) -> None:
@@ -485,7 +491,8 @@ class EditorScreen(ttk.Frame):
             self._btn_play = self._se_btn(play_bar, "\u25b6  PLAY",  self._on_play)
             self._btn_play.pack(side="left", padx=(0, 6))
             self._se_btn(play_bar, "\u25a0  STOP", self._on_stop).pack(side="left", padx=(0, 16))
-            self._se_btn(play_bar, "PLAY SELECTION", self._on_play_selection).pack(side="left")
+            self._se_btn(play_bar, "\u25b6  PLAY SELECTION", self._on_play_selection).pack(side="left", padx=(0, 6))
+            self._se_btn(play_bar, "\u2715  CLEAR SELECTION", self._on_clear_selection).pack(side="left")
 
             self._playback_var = tk.StringVar(value="")
             ttk.Label(play_bar, textvariable=self._playback_var,
@@ -777,6 +784,12 @@ CHANNELS
         self._sel_start = 0
         self._sel_end   = len(self._samples)
         self._waveform.select_all()
+        self._update_info()
+
+    def _on_clear_selection(self):
+        self._sel_start = 0
+        self._sel_end   = 0
+        self._waveform.clear_selection()
         self._update_info()
 
     # -----------------------------------------------------------------------

@@ -41,6 +41,8 @@ echo  NOTE: The following external tools are NOT bundled.
 echo  Place them next to SE Audio Converter.exe or add to PATH:
 echo.
 echo    ffmpeg.exe       https://ffmpeg.org/download.html
-echo    xWMAEncode.exe   https://archive.org/details/dxsdk_2010
+echo    xWMAEncode.exe   Included in the Space Engineers Mod SDK
+echo                     Find it at: [ModSDK]\Tools\xWMAEncode.exe
+echo                     (Free on Steam - App ID 244860)
 echo.
 pause

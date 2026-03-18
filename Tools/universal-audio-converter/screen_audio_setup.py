@@ -132,10 +132,11 @@ class SetupScreen(ttk.Frame):
             required_by="Audio Converter  (XWM output only)",
             desc=("Microsoft's official XWM encoder. Required only if you want\n"
                   "to export audio as .xwm for Space Engineers mods."),
-            download_url="https://archive.org/details/dxsdk_2010",
-            install_note=("Download the DirectX SDK (June 2010). Install it, then find\n"
-                          "xWMAEncode.exe inside the SDK's Utilities\\bin\\x86 folder.\n"
-                          "Place it next to SE Audio Converter.exe  — or add it to PATH."),
+            download_url="https://store.steampowered.com/app/244860/Space_Engineers_Mod_SDK/",
+            install_note=("Already included in the Space Engineers Mod SDK!\n"
+                          "Find it at:  [ModSDK]\\Tools\\xWMAEncode.exe\n"
+                          "Copy it next to SE Audio Converter.exe  — or add the Tools folder to PATH.\n"
+                          "Don't have the ModSDK? Add it free via Steam (App ID 244860)."),
         )
 
         T.separator(parent, pady=(6, 14))

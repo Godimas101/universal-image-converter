@@ -421,19 +421,10 @@ class ImageConverterScreen(ttk.Frame):
             self._affix_text_var.set("_converted")
 
     def _on_aspect_toggle(self) -> None:
-        if self._aspect_var.get():
-            # Just re-sync height to current width
-            self._on_width_changed()
-            self._height_entry.config(state="disabled")
-        else:
-            self._height_entry.config(state="normal")
+        pass  # aspect ratio is handled by convert_image; both width and height remain editable
 
     def _on_width_changed(self, *_args) -> None:
-        if not self._aspect_var.get():
-            return
-        val = self._width_var.get()
-        if val.isdigit():
-            self._height_var.set(val)
+        pass  # no height-locking; width and height are always independent
 
     def _on_screen_change(self, _e=None) -> None:
         display = self._screen_var.get()

@@ -287,17 +287,24 @@ def _load_and_compose_custom(img_path: Path, max_width: int, max_height: int,
     img = _flatten_to_black(_load_image(img_path))
     orig_w, orig_h = img.size
 
+    # Canvas size: round user dimensions to nearest power-of-two.
+    target_w = _nearest_pow2(max_width)
+    target_h = _nearest_pow2(max_height)
+
     if preserve_aspect:
-        scale    = min(max_width / orig_w, max_height / orig_h)
+        # Scale image to fit within canvas, preserving aspect ratio.
+        scale    = min(target_w / orig_w, target_h / orig_h)
         scaled_w = max(1, round(orig_w * scale))
         scaled_h = max(1, round(orig_h * scale))
-        target_w = min(_nearest_pow2(scaled_w), max_width)
-        target_h = min(_nearest_pow2(scaled_h), max_height)
+        resized  = img.resize((scaled_w, scaled_h), Image.LANCZOS)
+        # Paste centred onto a black canvas of the full target size.
+        canvas = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 255))
+        x = (target_w - scaled_w) // 2
+        y = (target_h - scaled_h) // 2
+        canvas.paste(resized, (x, y))
+        img = canvas
     else:
-        target_w = min(_nearest_pow2(orig_w), max_width)
-        target_h = min(_nearest_pow2(orig_h), max_height)
-
-    if (target_w, target_h) != img.size:
+        # Stretch to fill the full canvas.
         img = img.resize((target_w, target_h), Image.LANCZOS)
 
     # Apply SE inverse-emissivity alpha=1 now that all resizing is done.

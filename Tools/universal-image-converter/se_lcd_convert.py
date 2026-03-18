@@ -198,9 +198,9 @@ def mip_count(w: int, h: int) -> int:
 # Image preparation
 # ===========================================================================
 
-def _flatten_to_black(img) -> "PIL.Image.Image":
+def _flatten_to_black(img, bg_color=(0, 0, 0)) -> "PIL.Image.Image":
     """
-    Composite img onto a black background and return RGBA with alpha=255.
+    Composite img onto bg_color and return RGBA with alpha=255.
 
     NOTE: alpha=255 here (fully opaque) is intentional — Pillow applies
     premultiplied-alpha math during LANCZOS resize, so resizing with alpha=1
@@ -219,7 +219,7 @@ def _flatten_to_black(img) -> "PIL.Image.Image":
         img = img.convert("RGBA")
 
     if img.mode in ("RGBA", "LA"):
-        background = Image.new("RGB", img.size, (0, 0, 0))
+        background = Image.new("RGB", img.size, bg_color)
         alpha = img.split()[-1]
         background.paste(img.convert("RGB"), mask=alpha)
         rgb = background
@@ -245,15 +245,16 @@ def _load_image(img_path: Path) -> "PIL.Image.Image":
     return img
 
 
-def _load_and_compose(img_path: Path, preset: ScreenPreset) -> "PIL.Image.Image":
+def _load_and_compose(img_path: Path, preset: ScreenPreset,
+                      bg_color=(0, 0, 0)) -> "PIL.Image.Image":
     """
     Load the source image, flatten alpha, scale to fit the visible compose
-    region, and center it on a black DDS canvas of the preset dimensions.
+    region, and center it on a bg_color DDS canvas of the preset dimensions.
     Returns an RGB PIL image ready for encoding.
     """
     from PIL import Image
 
-    img = _flatten_to_black(_load_image(img_path))
+    img = _flatten_to_black(_load_image(img_path), bg_color)
 
     # Scale image to fit within surface region (letterbox / pillarbox)
     scale = min(preset.surface_w / img.width, preset.surface_h / img.height)
@@ -262,7 +263,7 @@ def _load_and_compose(img_path: Path, preset: ScreenPreset) -> "PIL.Image.Image"
     if (new_w, new_h) != img.size:
         img = img.resize((new_w, new_h), Image.LANCZOS)
 
-    canvas = Image.new("RGBA", (preset.dds_w, preset.dds_h), (0, 0, 0, 255))
+    canvas = Image.new("RGBA", (preset.dds_w, preset.dds_h), (*bg_color, 255))
     x = (preset.dds_w - new_w) // 2
     y = (preset.dds_h - new_h) // 2
     canvas.paste(img, (x, y))
@@ -273,7 +274,8 @@ def _load_and_compose(img_path: Path, preset: ScreenPreset) -> "PIL.Image.Image"
 
 
 def _load_and_compose_custom(img_path: Path, max_width: int, max_height: int,
-                              preserve_aspect: bool) -> "PIL.Image.Image":
+                              preserve_aspect: bool,
+                              bg_color=(0, 0, 0)) -> "PIL.Image.Image":
     """
     Load and resize to user-specified dimensions.
     Each dimension is rounded to the nearest power of two, then capped at
@@ -284,7 +286,7 @@ def _load_and_compose_custom(img_path: Path, max_width: int, max_height: int,
     """
     from PIL import Image
 
-    img = _flatten_to_black(_load_image(img_path))
+    img = _flatten_to_black(_load_image(img_path), bg_color)
     orig_w, orig_h = img.size
 
     # Canvas size: round user dimensions to nearest power-of-two.
@@ -297,8 +299,8 @@ def _load_and_compose_custom(img_path: Path, max_width: int, max_height: int,
         scaled_w = max(1, round(orig_w * scale))
         scaled_h = max(1, round(orig_h * scale))
         resized  = img.resize((scaled_w, scaled_h), Image.LANCZOS)
-        # Paste centred onto a black canvas of the full target size.
-        canvas = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 255))
+        # Paste centred onto a canvas of the full target size.
+        canvas = Image.new("RGBA", (target_w, target_h), (*bg_color, 255))
         x = (target_w - scaled_w) // 2
         y = (target_h - scaled_h) // 2
         canvas.paste(resized, (x, y))
@@ -536,7 +538,8 @@ def convert_image(img_path: Path, out_dir: Path,
                   suffix: str = "",
                   custom_max_size: int = DEFAULT_MAX_SIZE,
                   custom_max_height: int | None = None,
-                  custom_preserve_aspect: bool = False) -> None:
+                  custom_preserve_aspect: bool = False,
+                  bg_color: tuple = (0, 0, 0)) -> None:
     """
     Convert a single image to a SE LCD DDS texture.
 
@@ -553,9 +556,9 @@ def convert_image(img_path: Path, out_dir: Path,
     if preset is CUSTOM_PRESET:
         max_h = custom_max_height if custom_max_height is not None else custom_max_size
         img = _load_and_compose_custom(img_path, custom_max_size, max_h,
-                                       custom_preserve_aspect)
+                                       custom_preserve_aspect, bg_color)
     else:
-        img = _load_and_compose(img_path, preset)
+        img = _load_and_compose(img_path, preset, bg_color)
 
     dds_w, dds_h = img.size
     mips = mip_count(dds_w, dds_h) if gen_mipmaps else 1

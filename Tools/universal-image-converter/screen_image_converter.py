@@ -66,6 +66,7 @@ class ImageConverterScreen(ttk.Frame):
         self._converting                 = False
         self._q: queue.Queue             = queue.Queue()
         self._ref_window                 = None
+        self._bg_color: tuple            = (0, 0, 0)
 
         if _IMPORT_OK:
             self._has_pillow  = _check_pillow()
@@ -276,6 +277,25 @@ class ImageConverterScreen(ttk.Frame):
         self._btn_clear_out = self._se_button(outfolder_ctrl, "RESET", self._on_reset_outfolder, width=7)
         self._btn_clear_out.pack(side="left")
 
+        # Row 4: Background colour
+        ttk.Label(settings_frame, text="Background:", style="TLabel").grid(
+            row=4, column=0, sticky="e", padx=(0, 8), pady=(6, 0))
+        bg_ctrl = ttk.Frame(settings_frame, style="TFrame")
+        bg_ctrl.grid(row=4, column=1, sticky="w", pady=(6, 0))
+
+        self._bg_swatch = tk.Frame(
+            bg_ctrl, width=22, height=22,
+            bg="#000000", cursor="hand2",
+            highlightthickness=1, highlightbackground=T.BORDER,
+        )
+        self._bg_swatch.pack_propagate(False)
+        self._bg_swatch.pack(side="left", padx=(0, 8))
+        self._bg_swatch.bind("<Button-1>", lambda _e: self._on_pick_bg())
+
+        self._bg_hex_var = tk.StringVar(value="#000000")
+        ttk.Label(bg_ctrl, textvariable=self._bg_hex_var,
+                  style="Muted.TLabel").pack(side="left")
+
         T.separator(self, pady=(14, 10))
 
         # ── Convert Button ────────────────────────────────────────────────────
@@ -426,6 +446,19 @@ class ImageConverterScreen(ttk.Frame):
     def _on_width_changed(self, *_args) -> None:
         pass  # no height-locking; width and height are always independent
 
+    def _on_pick_bg(self) -> None:
+        from tkinter import colorchooser
+        current = "#{:02x}{:02x}{:02x}".format(*self._bg_color)
+        result = colorchooser.askcolor(
+            color=current, title="Background Color",
+            parent=self.winfo_toplevel())
+        if result and result[0]:
+            r, g, b = (int(x) for x in result[0])
+            self._bg_color = (r, g, b)
+            hex_str = "#{:02x}{:02x}{:02x}".format(r, g, b)
+            self._bg_swatch.config(bg=hex_str)
+            self._bg_hex_var.set(hex_str)
+
     def _on_screen_change(self, _e=None) -> None:
         display = self._screen_var.get()
         name    = _PRESET_DISPLAY_MAP.get(display, display)
@@ -526,6 +559,7 @@ class ImageConverterScreen(ttk.Frame):
                     custom_max_size=c_width,
                     custom_max_height=c_height,
                     custom_preserve_aspect=self._aspect_var.get(),
+                    bg_color=self._bg_color,
                 )
                 self._q.put(("log", f"  ✓ Saved: {f.stem}.dds", "success"))
             except Exception as exc:

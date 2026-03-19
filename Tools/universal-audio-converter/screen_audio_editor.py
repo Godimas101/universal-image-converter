@@ -677,14 +677,14 @@ class EditorScreen(ttk.Frame):
         # ── Channels ──────────────────────────────────────────────────────────
         _lbl(5, "CHANNELS")
         cell = _btn_cell(5)
-        for label, cmd in [
-            ("\u2295 MONO\u2192STEREO", self._op_mono_to_stereo),
-            ("\u2296 STEREO\u2192MONO", self._op_stereo_to_mono),
-            ("\u2194 SWAP L/R",         self._op_swap),
-            ("\u229f EXTRACT",          self._op_extract_active),
-            ("\u25ce SOLO",             self._op_solo_active),
-        ]:
-            self._se_btn(cell, label, cmd).pack(side="left", padx=(0, 4))
+        self._se_btn(cell, "\u2295 MONO\u2192STEREO", self._op_mono_to_stereo).pack(side="left", padx=(0, 4))
+        self._se_btn(cell, "\u2296 STEREO\u2192MONO", self._op_stereo_to_mono).pack(side="left", padx=(0, 4))
+        self._btn_swap    = self._se_btn(cell, "\u2194 SWAP L/R", self._op_swap)
+        self._btn_swap.pack(side="left", padx=(0, 4))
+        self._btn_extract = self._se_btn(cell, "\u229f EXTRACT", self._op_extract_active)
+        self._btn_extract.pack(side="left", padx=(0, 4))
+        self._btn_solo    = self._se_btn(cell, "\u25ce SOLO", self._op_solo_active)
+        self._btn_solo.pack(side="left", padx=(0, 4))
 
     # -----------------------------------------------------------------------
     # Widget helpers
@@ -830,7 +830,7 @@ class EditorScreen(ttk.Frame):
             )
 
     def _update_channel_ui(self, n_ch: int) -> None:
-        """Show channel toggle buttons for stereo, hide for mono."""
+        """Show/hide channel toggle buttons and enable/disable stereo-only ops."""
         if n_ch == 2:
             self._ch_active = [True, True]
             self._ch_btn_frame.pack(side="left", fill="y",
@@ -839,6 +839,9 @@ class EditorScreen(ttk.Frame):
         else:
             self._ch_btn_frame.pack_forget()
         self._waveform.set_channel_active(self._ch_active)
+        state = "normal" if n_ch == 2 else "disabled"
+        for btn in (self._btn_swap, self._btn_extract, self._btn_solo):
+            btn.config(state=state)
 
     def _on_select_all(self):
         if self._samples is None:
@@ -873,6 +876,7 @@ class EditorScreen(ttk.Frame):
         self._sel_start = 0
         self._sel_end   = len(self._samples)
         self._waveform.select_all()
+        self._update_channel_ui(self._samples.shape[1])
         self._update_info()
         self._log("Undo.", "muted")
 

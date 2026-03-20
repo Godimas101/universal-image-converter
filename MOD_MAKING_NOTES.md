@@ -483,6 +483,46 @@ All three files written from local workshop mod data + web research, then synced
 
 ---
 
+### 2026-03-19 (Session 4) — Universal Audio Converter Stereo Waveform + Channel UI
+
+#### Waveform — Orange Selection Highlight
+- Selected region of the waveform now turns orange; unselected portions stay grey.
+- Selection tint (stippled orange rectangle) drawn behind the waveform lines so lines sit on top.
+- Replaced the old blue stipple overlay with orange throughout.
+
+#### Waveform — Stereo Split View
+- Stereo files now show two waveform lanes: R on top, L on bottom, divided by a `BORDER` line.
+- Mono files keep the single full-height waveform view.
+- Lane height is half of `WAVEFORM_HEIGHT` (80px each at default 160px).
+
+#### Channel Toggle Buttons (R / L)
+- Two toggle buttons appear to the left of the waveform when a stereo file is loaded; hidden for mono.
+- Active (on) = orange background / dark text. Inactive (off) = PANEL background / muted text.
+- Buttons occupy a fixed 32px-wide frame packed `before=self._waveform` using `pack_propagate(False)`.
+- Toggling a channel controls whether that lane gets the orange selection highlight.
+- Buttons auto-reset to both-on when a new stereo file loads or a channel op changes the file to stereo.
+
+#### SWAP / EXTRACT / SOLO Button State
+- Swap, Extract, and Solo buttons now disable automatically when a mono file is loaded.
+- Re-enable when a stereo file is loaded or restored via undo.
+- No-file state keeps all buttons active (as before).
+
+#### Extract / Solo Consolidated
+- Removed separate Extract L, Extract R, Solo L, Solo R buttons.
+- Replaced with single `⊟ EXTRACT` and `◎ SOLO` buttons that read the L/R channel toggle state.
+- Both active or both inactive → blocked with a log message.
+- Solo is selection-aware: with a time selection, only that region is affected; no selection = whole file.
+
+#### Bug Fix — Waveform Selection Lost After Layout Change
+- Root cause: packing/unpacking the channel button frame caused tkinter to fire multiple `Configure` events on the canvas, sometimes with a transient small width. Simple clamping would shrink `_sel_end_px` during the transient, and the final event wouldn't restore it.
+- Fix: `_on_resize` now proportionally scales both selection pixel positions on every resize, so any sequence of transient events correctly resolves to the final canvas width.
+
+#### Style Guide
+- Added **Toggle Button** pattern (tk.Button, orange/BG when active, PANEL/MUTED when inactive).
+- Added **Canvas Widget** section: waveform colour conventions table (background, centre line, unselected/selected waveform, tint, handles, playhead) + the proportional resize scaling gotcha with code example.
+
+---
+
 ### 2026-03-14 — CustomData Section Header Standardization
 - **Change:** All CustomData section headers now follow consistent `; [ SCREENNAME - CATEGORY ]` pattern
 - **Scrolling headers:** Were mixed (`; [ SCROLLING OPTIONS ]`, `; [ SCREENNAME - SCROLLING OPTIONS ]`) — now all use `; [ SCREENNAME - SCROLLING OPTIONS ]`

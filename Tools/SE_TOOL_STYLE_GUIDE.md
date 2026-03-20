@@ -340,6 +340,44 @@ swatch.bind("<Button-1>", lambda _e: None)
 hex_label.config(foreground=BORDER)
 ```
 
+### Toggle Button
+
+Used for binary on/off state controls (e.g. channel select buttons). Plain `tk.Button` — not ttk — for full colour control.
+
+**Active (on):**
+```python
+btn.config(bg=ORANGE, fg=BG, activebackground=ORANGE)
+```
+
+**Inactive (off):**
+```python
+btn.config(bg=PANEL, fg=MUTED, activebackground=PANEL)
+```
+
+Construction pattern:
+```python
+self._btn = tk.Button(
+    parent, text="R",
+    font=("Courier New", 10, "bold"),
+    bd=0, relief="flat", cursor="hand2",
+    activeforeground=TEXT,
+    command=self._on_toggle,
+)
+```
+
+Toggle handler:
+```python
+def _on_toggle(self):
+    self._active = not self._active
+    self._btn.config(
+        bg=ORANGE if self._active else PANEL,
+        fg=BG     if self._active else MUTED,
+        activebackground=ORANGE if self._active else PANEL,
+    )
+```
+
+When a group of toggle buttons occupies a fixed-width column alongside a canvas or other expanding widget, use a `tk.Frame` with `pack_propagate(False)` and a fixed `width`. Pack the frame before the canvas with `side="left"`, and show/hide it with `pack()` / `pack_forget()`. See **Canvas resize gotcha** below.
+
 ### Hyperlink Label
 
 ```python
@@ -353,6 +391,54 @@ link.bind("<Button-1>", lambda _e: webbrowser.open(url))
 link.bind("<Enter>",    lambda _e: link.config(fg=CYAN))
 link.bind("<Leave>",    lambda _e: link.config(fg=BLUE))
 ```
+
+### Canvas Widget (Waveform / Visualiser)
+
+Use a plain `tk.Canvas` for data visualisers. Key construction args:
+
+```python
+tk.Canvas(
+    parent,
+    bg=PANEL,                       # canvas background
+    height=160,                     # fixed height in pixels
+    highlightthickness=1,
+    highlightbackground=BORDER,
+    cursor="crosshair",
+)
+```
+
+**Waveform colour conventions:**
+
+| Element | Colour | Notes |
+|---------|--------|-------|
+| Background | `PANEL` | Canvas bg |
+| Centre / divider lines | `BORDER` | 1px horizontal rules |
+| Waveform (unselected) | `MUTED` | Grey signal lines |
+| Waveform (selected) | `ORANGE` | Replaces grey within selection range |
+| Selection tint | `ORANGE` + `stipple="gray25"` | Drawn *before* waveform so lines sit on top |
+| Selection handles | `ORANGE` | 2px vertical lines at selection edges |
+| Playhead | `TEXT` | 1px dashed line (`dash=(4, 2)`) |
+
+Stereo layout: split canvas height in half — R channel top, L channel bottom, `BORDER` divider at the midpoint.
+
+**Canvas resize gotcha — proportional scaling:**
+
+When a sibling widget (e.g. a toggle button frame) is packed/unpacked next to a canvas, tkinter fires multiple `Configure` events — sometimes with a transient small width before settling on the correct size. Simple clamping (`if sel_end > width: sel_end = width`) will incorrectly shrink the selection during the transient event, and the final event won't restore it.
+
+Fix: **always scale pixel positions proportionally** on resize:
+
+```python
+def _on_resize(self, event) -> None:
+    new_w = max(1, event.width)
+    if self._width > 0 and self._width != new_w:
+        scale = new_w / self._width
+        self._sel_start_px = min(new_w, round(self._sel_start_px * scale))
+        self._sel_end_px   = min(new_w, round(self._sel_end_px   * scale))
+    self._width = new_w
+    self._redraw()
+```
+
+This correctly handles any sequence of transient resize events: positions scale down then back up, and a full-width selection always stays full-width.
 
 ---
 

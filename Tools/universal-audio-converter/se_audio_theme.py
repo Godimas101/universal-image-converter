@@ -112,6 +112,12 @@ def configure_styles(style: ttk.Style) -> None:
         darkcolor=PANEL, lightcolor=PANEL)
     style.map("SE.Vertical.TScrollbar", background=[("active", HOVER)])
 
+    style.configure("SE.Horizontal.TScrollbar",
+        background=PANEL, troughcolor=BG,
+        bordercolor=BORDER, arrowcolor=CYAN,
+        darkcolor=PANEL, lightcolor=PANEL)
+    style.map("SE.Horizontal.TScrollbar", background=[("active", HOVER)])
+
     style.configure("SE.Treeview",
         background=BG, foreground=TEXT, fieldbackground=BG,
         bordercolor=BORDER, font=("Courier New", 9), rowheight=22)

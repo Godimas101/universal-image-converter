@@ -383,6 +383,8 @@ namespace MahrianeIndustries.LCDInfo
                 return;
 
             MahDefinitions.LoadExternalItems();
+            // Clear unknown definitions at start of each run to prevent stale fallback definitions
+            unknownItemDefinitions.Clear();
             if (myTerminalBlock.CustomData.Length <= 0 || !myTerminalBlock.CustomData.Contains(CONFIG_SECTION_ID))
                 CreateConfig();
 
@@ -480,7 +482,6 @@ namespace MahrianeIndustries.LCDInfo
             try
             {
                 cargo.Clear();
-                unknownItemDefinitions.Clear();
 
                 foreach (var inventory in inventories)
                 {

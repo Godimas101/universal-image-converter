@@ -714,15 +714,14 @@ namespace MahrianeIndustries.LCDInfo
                 
                 if (toggleScroll && totalDataLines > availableDataLines)
                 {
-                    // Normalize scroll offset to stay within bounds
-                    scrollOffset = ((scrollOffset % totalDataLines) + totalDataLines) % totalDataLines;
-                    startIndex = scrollOffset;
+                    int normalizedOffset = ((scrollOffset % totalDataLines) + totalDataLines) % totalDataLines;
+                    startIndex = normalizedOffset;
                 }
 
                 // Draw items with scrolling/wrapping
                 position = dataStartPosition;
                 int linesDrawn = 0;
-                
+
                 for (int i = 0; i < totalDataLines && linesDrawn < availableDataLines; i++)
                 {
                     int itemIndex = (startIndex + i) % totalDataLines;
@@ -802,15 +801,14 @@ namespace MahrianeIndustries.LCDInfo
                 
                 if (toggleScroll && totalDataLines > availableDataLines)
                 {
-                    // Normalize scroll offset to stay within bounds
-                    scrollOffset = ((scrollOffset % totalDataLines) + totalDataLines) % totalDataLines;
-                    startIndex = scrollOffset;
+                    int normalizedOffset = ((scrollOffset % totalDataLines) + totalDataLines) % totalDataLines;
+                    startIndex = normalizedOffset;
                 }
 
                 // Draw items with scrolling/wrapping
                 position = dataStartPosition;
                 int linesDrawn = 0;
-                
+
                 for (int i = 0; i < totalDataLines && linesDrawn < availableDataLines; i++)
                 {
                     int itemIndex = (startIndex + i) % totalDataLines;

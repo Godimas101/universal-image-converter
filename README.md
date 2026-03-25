@@ -109,6 +109,10 @@ All mods are free and always will be. If they're adding to your game, consider s
 
 [![Support on Patreon](https://raw.githubusercontent.com/Godimas101/personal-projects/main/patreon/images/buttons/patreon-medium.png)](https://patreon.com/Godimas101)
 
+Looking for the modding tools? Grab everything in one place:
+
+[![SE Modder's Tool Kit](https://raw.githubusercontent.com/Godimas101/personal-projects/main/patreon/images/buttons/git-medium.png)](https://github.com/Godimas101/space-engineers-modders-tool-kit)
+
 ---
 
 *"Building better blocks, one mod at a time."*

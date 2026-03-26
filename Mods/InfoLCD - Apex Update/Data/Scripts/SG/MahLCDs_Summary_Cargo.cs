@@ -421,6 +421,7 @@ namespace MahrianeIndustries.LCDInfo
                 if (!config.ContainsKey(CONFIG_SECTION_ID, def.subtypeId))
                 {
                     CreateConfig();
+                    LoadConfig();
                     break;
                 }
             }

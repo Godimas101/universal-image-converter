@@ -649,42 +649,24 @@ namespace MahrianeIndustries.LCDInfo
                     try
                     {
                         level = vent.GetOxygenLevel();
-                        statusText = vent.Status.ToString();
                         isIntake = vent.Depressurize; // Depressurize mode = air intake
-                        var upper = statusText.ToUpperInvariant();
-                        // Normalize status labels and assign colors
-                        string statusWord = upper;
-                        if (upper.StartsWith("DEPRESSURIZ"))
+                        // Use GetOxygenLevel() as primary signal — vent.Status has known SE API bugs
+                        // (VentStatus.Depressurized may never emit, or may emit incorrectly for sealed rooms).
+                        string statusWord;
+                        if (level >= 0.95f)
                         {
-                            if (upper == "DEPRESSURIZING")
-                            {
-                                statusWord = "DEPRESSURIZING";
-                                statusColor = Color.Gold;
-                            }
-                            else
-                            {
-                                statusWord = "DEPRESSURIZED";
-                                statusColor = Color.IndianRed;
-                            }
+                            statusWord = "PRESSURIZED";
+                            statusColor = Color.YellowGreen;
                         }
-                        else if (upper.StartsWith("PRESSURIZ"))
+                        else if (level > 0.01f)
                         {
-                            if (upper == "PRESSURIZING")
-                            {
-                                statusWord = "PRESSURIZING";
-                                statusColor = Color.Gold;
-                            }
-                            else
-                            {
-                                statusWord = "PRESSURIZED";
-                                statusColor = Color.YellowGreen;
-                            }
+                            statusWord = isIntake ? "DEPRESSURIZING" : "PRESSURIZING";
+                            statusColor = Color.Gold;
                         }
                         else
                         {
-                            // Fallback/unknown: keep default color
-                            statusWord = upper;
-                            statusColor = surfaceData.surface.ScriptForegroundColor;
+                            statusWord = "DEPRESSURIZED";
+                            statusColor = Color.IndianRed;
                         }
 
                         // We'll draw a constant-width bracket shell in white, then overlay the centered status word in color (keeps brackets white, width constant)

@@ -598,6 +598,39 @@ All three files written from local workshop mod data + web research, then synced
 
 ---
 
+### 2026-03-26 — InfoLCD Production Count + LifeSupport Vent Status + Optimization Backlog
+
+#### Production Screen — Assembler Blueprint Amount Missing
+
+- **Bug:** Assembler rows showed `Steel plates +4` instead of `3500 Steel plates +4`.
+- **Root cause:** The assembler drawing function (`DrawAssemblersWithScrolling`) never read `blueprintAmount` from the queue. The refinery section correctly embeds amount in the queue string via `KiloFormat(amount)`, and the food processor section reads `blueprintAmount` and includes it in the draw call — but the assembler section was the odd one out.
+- **Fix:** Added `var blueprintAmount = queuedBlueprints.Count > 0 ? (int)queuedBlueprints[0].Amount : 0;` and prepended it to the draw call: `$"{(blueprintAmount > 0 ? blueprintAmount.ToString("0") + " " : "")}{queue}  +N"`.
+- **Apex Advanced:** Already had the fix — only the Apex Update version was affected.
+
+#### LifeSupport Screen — Vent Status Using GetOxygenLevel() Fallback
+
+- **Bug reported:** All vents showing "Depressurized" even when rooms are genuinely pressurized.
+- **Research findings:**
+  - `IMyAirVent.Status` has two long-standing confirmed SE API bugs (Keen support, both marked outdated/won't fix):
+    1. `VentStatus.Depressurized` is effectively a dead enum value — the game's `UpdateStatus()` never emits it; vents that finish depressurizing stay stuck at `Depressurizing`.
+    2. Separate "contagious depressurization" game engine bug (158 votes, unfixed since 2017) where rooms spontaneously report as depressurized after door/airlock cycles, docking, or MP events — the game's own room sealing calculation corrupts.
+  - `GetOxygenLevel()` is unaffected by either bug and accurately returns 0.0–1.0.
+  - Both bugs are game-side; no fix from Keen was ever shipped for either.
+- **Fix:** Replaced `vent.Status.ToString()` string parsing with `GetOxygenLevel()`-based logic. Performance cost: zero — `level` was already being read every tick for the percentage display.
+  - `level >= 0.95f` → PRESSURIZED (green)
+  - `level > 0.01f` → PRESSURIZING or DEPRESSURIZING based on `vent.Depressurize` mode (gold)
+  - `level <= 0.01f` → DEPRESSURIZED (red)
+  - Intake mode override (`isIntake`) still fires after this block and shows "AIR INTAKE" (aqua) as before.
+- Removed the now-unused `statusText = vent.Status.ToString()` and `var upper` lines.
+
+#### Optimization Backlog — LoadConfig() Called Every Tick (12 Screens)
+
+- **Finding:** All remaining summary screens (Production, LifeSupport, GasProduction, Power, AirlockMonitor, Container, DamageMonitor, DetailedInfo, DoorMonitor, Farming, GridInfo, Systems) call `LoadConfig()` unconditionally in `Run()` — i.e., every game tick (~6x/sec).
+- **Severity:** Low — `CreateConfig()` IS guarded by a condition, so no CustomData writes happen every tick. `LoadConfig()` only reads/parses, so no corruption risk. The cost is redundant INI string parsing.
+- **Planned fix:** Cache the last CustomData string and only call `LoadConfig()` when it actually changes. Deferred until the mod is feature-complete.
+
+---
+
 ### 2026-03-25 — InfoLCD CustomData Reset Bug + Header Flip-Flop + Weapons Screen Fix
 
 #### Root Cause: CustomData Regression (All Summary Screens)

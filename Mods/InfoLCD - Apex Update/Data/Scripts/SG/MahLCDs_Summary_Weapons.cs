@@ -107,8 +107,9 @@ namespace MahrianeIndustries.LCDInfo
                     }
                     else if (!inOurSection && addedOtherContent)
                     {
-                        // Add any line that's not in our section
-                        sb.AppendLine(line);
+                        // Add any non-blank line that's not in our section (skip blanks to prevent accumulation)
+                        if (!string.IsNullOrWhiteSpace(trimmed))
+                            sb.AppendLine(line);
                     }
                     else if (!inOurSection && !string.IsNullOrWhiteSpace(trimmed))
                     {

@@ -207,7 +207,7 @@ namespace MahrianeIndustries.LCDInfo
                 configError = false;
                 MyIniParseResult result;
                 TryCreateSurfaceData();
-                if (config.TryParse(myTerminalBlock.CustomData, CONFIG_SECTION_ID, out result))
+                if (config.TryParse(myTerminalBlock.CustomData, out result))
                 {
                     if (config.ContainsKey(CONFIG_SECTION_ID, "ShowHeader")) surfaceData.showHeader = config.Get(CONFIG_SECTION_ID, "ShowHeader").ToBoolean();
                     if (config.ContainsKey(CONFIG_SECTION_ID, "ShowSummary")) surfaceData.showSummary = config.Get(CONFIG_SECTION_ID, "ShowSummary").ToBoolean();

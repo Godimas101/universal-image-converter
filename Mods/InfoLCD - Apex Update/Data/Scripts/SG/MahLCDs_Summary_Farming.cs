@@ -290,9 +290,9 @@ namespace MahrianeIndustries.LCDInfo
                 var mainBlocks = MahUtillities.GetBlocks(myCubeGrid, searchId, excludeIds, ref gridMass, false, false);
 
                 // Periodically update subgrid cache
-                if (scanSubgrids)
+                if (scanSubgrids && surfaceData.showSubgrids)
                 {
-                    var allBlocks = MahUtillities.GetBlocks(myCubeGrid, searchId, excludeIds, ref gridMass, true, false);
+                    var allBlocks = MahUtillities.GetBlocks(myCubeGrid, searchId, excludeIds, ref gridMass, surfaceData.showSubgrids, false);
                     subgridFarmPlots.Clear();
                     
                     foreach (var b in allBlocks)
@@ -308,6 +308,10 @@ namespace MahrianeIndustries.LCDInfo
                                 subgridFarmPlots.Add((IMyTerminalBlock)b);
                         }
                     }
+                }
+                else if (!surfaceData.showSubgrids)
+                {
+                    subgridFarmPlots.Clear();
                 }
 
                 // Process main grid blocks and accumulate counts
@@ -355,7 +359,7 @@ namespace MahrianeIndustries.LCDInfo
                 }
                 
                 // Add cached subgrid farm plots
-                if (subgridFarmPlots != null && subgridFarmPlots.Count > 0)
+                if (surfaceData.showSubgrids && subgridFarmPlots != null && subgridFarmPlots.Count > 0)
                 {
                     totalFarmPlots += subgridFarmPlots.Count;
                     farmPlots.AddRange(subgridFarmPlots);

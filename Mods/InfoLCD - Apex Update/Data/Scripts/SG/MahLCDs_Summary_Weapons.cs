@@ -217,6 +217,7 @@ namespace MahrianeIndustries.LCDInfo
                 else
                 {
                     MyLog.Default.WriteLine($"MahrianeIndustries.LCDInfo.LCDInfoScreenWeaponsSummary: Config Syntax error at Line {result}");
+                    configError = true;
                 }
                 
                 // Apply compact-mode overrides similar to Ores screen when on corner LCDs

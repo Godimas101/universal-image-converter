@@ -236,6 +236,7 @@ namespace MahrianeIndustries.LCDInfo
                 else
                 {
                     MyLog.Default.WriteLine($"MahrianeIndustries.LCDInfo.LCDOresSummaryInfo: Config Syntax error at Line {result}");
+                    configError = true;
                 }
 
                 CreateCargoItemDefinitionList();

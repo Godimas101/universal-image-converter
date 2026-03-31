@@ -213,6 +213,7 @@ namespace MahrianeIndustries.LCDInfo
                 else
                 {
                     MyLog.Default.WriteLine($"MahrianeIndustries.LCDInfo.LCDInfoScreenPowerSummary: Config Syntax error at Line {result}");
+                    configError = true;
                 }
             }
             catch (Exception e)

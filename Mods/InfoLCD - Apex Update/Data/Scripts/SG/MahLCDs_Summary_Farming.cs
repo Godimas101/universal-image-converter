@@ -332,6 +332,7 @@ namespace MahrianeIndustries.LCDInfo
                 foreach (var b in mainBlocks)
                 {
                     if (b == null) continue;
+                    if (b.CubeGrid != myCubeGrid) continue;  // defensive: skip any block not physically on the main grid
                     var subtype = b.BlockDefinition != null ? b.BlockDefinition.Id.SubtypeName : "";
                     var lower = subtype.ToLower();
 
@@ -738,18 +739,22 @@ namespace MahrianeIndustries.LCDInfo
             try
             {
                 // Get real-time crop state from IMyFarmPlotLogic component
+                // Also grab GetDetailedInfoWithoutRequiredInput() — this is a direct component call
+                // and is reliable for subgrid blocks where plot.DetailedInfo may be empty/stale
+                string componentDetailedInfo = null;
                 var cubeBlock = plot as MyCubeBlock;
                 if (cubeBlock != null && cubeBlock.Components != null)
                 {
                     foreach (var comp in cubeBlock.Components)
                     {
                         if (comp == null) continue;
-                        
+
                         var farmLogic = comp as Sandbox.ModAPI.IMyFarmPlotLogic;
                         if (farmLogic != null)
                         {
                             // IsPlantPlanted updates in real-time - this is our authoritative source
                             cropSlotEmpty = !farmLogic.IsPlantPlanted;
+                            try { componentDetailedInfo = farmLogic.GetDetailedInfoWithoutRequiredInput(); } catch { }
                             break;
                         }
                     }
@@ -792,7 +797,9 @@ namespace MahrianeIndustries.LCDInfo
                 }
 
                 // Parse DetailedInfo for crop name, growth%, health%, and hydration (if not found via component)
-                var info = plot.DetailedInfo ?? string.Empty;
+                // Prefer the component's direct method call — it's always current and works for subgrid blocks.
+                // Fall back to plot.DetailedInfo in case the component wasn't found (non-farming block, etc.)
+                var info = !string.IsNullOrWhiteSpace(componentDetailedInfo) ? componentDetailedInfo : (plot.DetailedInfo ?? string.Empty);
                 if (!string.IsNullOrWhiteSpace(info))
                 {
                     var lines = info.Split('\n');

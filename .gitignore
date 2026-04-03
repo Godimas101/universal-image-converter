@@ -1,1 +1,7 @@
-MOD_CATALOGUE.md
+build/
+dist/
+__pycache__/
+*.spec
+CLAUDE.md
+*NOTES*.md
+*STYLE_GUIDE*.md

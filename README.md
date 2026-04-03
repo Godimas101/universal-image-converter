@@ -1,118 +1,162 @@
-# 🛸 Space Engineers Mods
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=170&color=0:0B1021,45:0EA5E9,100:2563EB&text=Universal%20Image%20Converter&fontColor=ffffff&fontAlignY=35&fontSize=32&desc=Space%20Engineers%20LCD%20and%20texture%20art%20tools&descAlignY=57&descSize=18" />
+</p>
 
-> **Custom mods for Space Engineers — LCD displays, server gameplay overhauls, and compatibility patches.**
+> **"Because blank LCDs are just missed opportunities with better lighting."**
 
-## What's This?
+A Windows tool for Space Engineers players and modders who want images to behave themselves. It covers two very useful jobs:
+- turning images into `.dds` textures for LCD mods
+- turning images into pasteable LCD art for in-game screens
 
-My full Space Engineers mod collection. The flagship project is **InfoLCD** — a suite of information display screens for LCDs. The rest are gameplay overhauls and balance patches built for the Sturmgrenadier server community.
+If you just want to use it, download the exe and go. If you want to tinker, the Python source is here too.
 
-## What Lives Here?
+## 🚀 Quick Start
 
-### 📊 InfoLCD Series
+1. Download `SE Image Converter.exe` from the [Releases page](https://github.com/Godimas101/universal-image-converter/releases)
+2. Run it — no Python install is needed for the packaged app
+3. Use **Image to DDS** for mod assets or **Image to LCD** for in-game art
+4. Optionally place [`texconv.exe`](https://github.com/microsoft/DirectXTex/releases/latest) next to the exe for the best DDS quality
 
-| Mod | Status | Notes |
-|-----|--------|-------|
-| **InfoLCD - Apex Update** | Active development | For the Apex Update modpack |
-| **InfoLCD - Apex Advanced** | Maintenance only | For the Apex Advanced modpack — kept in sync |
+![SE Image Converter screenshot](image_converter.png)
 
-20+ specialized screens: Items, Cargo, Power, Production, Ammo, Components, Doors, Damage, Gas, Life Support, and more. Scrolling lists, category filtering, subgrid scanning, CustomData configuration.
+## ✨ Features
 
-See [Mods/InfoLCD - Apex Update/CLAUDE.md](Mods/InfoLCD%20-%20Apex%20Update/CLAUDE.md) for the full screen inventory and implementation details.
+| Feature | What it does |
+|--------|---------------|
+| **Image to DDS** | Creates Space Engineers-ready `.dds` textures for LCD mods |
+| **Image to LCD** | Generates pasteable LCD text strings for players |
+| **Built-in screen presets** | Matches common SE LCD and cockpit aspect ratios automatically |
+| **Reference helper** | Includes an in-app screen target lookup so you’re not guessing |
+| **Custom mode** | Lets you dial in manual output settings when presets aren’t enough |
 
----
+## 🔧 Setup
 
-### ⚙️ Sturmgrenadier Core Series
+### Packaged app
+- **No Python required**
+- **No install required**
+- just download the exe and run it
 
-Core gameplay overhaul for the Sturmgrenadier server ecosystem.
+### Optional quality boost: `texconv.exe`
+For **Image to DDS**, the converter works without `texconv`, but output quality is best when it’s available.
 
-| Mod | Purpose |
-|-----|---------|
-| Sturmgrenadier Core Mod | Base overhaul |
-| Sturmgrenadier Core Power | Power system |
-| Sturmgrenadier Core Production | Production & crafting |
-| Sturmgrenadier Core Survival | Survival mechanics |
-| Sturmgrenadier Core Vanilla Combat | Combat balance |
-
----
-
-### 🔧 Mod Adjusters
-
-Balance and compatibility patches for third-party mods used on Sturmgrenadier servers.
-
-| Mod | Adjusts |
-|-----|---------|
-| Artillery MKII Turret - Goliath | Weapon balance |
-| Dense Colorable Solar Panels | Power output |
-| Federal Industrial - Utilities | Compatibility |
-| Isy's Dense Solar Panels | Power output |
-| Life'Tech - Algaetechnology | Farming/resources |
-| ModCubeBlocks Refinery x10 | Refinery speed |
-| ModCubeBlocks Upgrade Module | Module balance |
-| More Engineer Characters | Character compatibility |
-| More Wind Turbines | Wind power output |
-| [Mafoo] More Batteries | Battery capacity/charge |
+1. Download it from [DirectXTex releases](https://github.com/microsoft/DirectXTex/releases/latest)
+2. Place `texconv.exe` next to `SE Image Converter.exe` or add it to your system `PATH`
 
 ---
 
-### ✨ Other Mods
+## 🧱 Image to DDS
 
-| Mod | Description |
-|-----|-------------|
-| Not Just For Looks | Gives DLC cosmetic blocks actual useful stats |
-| Universal Image Converter | LCD image pack — subscribe to get ready-made images in-game |
+### Quick workflow
+1. Select one or more images
+2. Choose a **Screen Target**
+3. Click **Convert**
+4. Drop the resulting `.dds` into your mod’s `Textures/Models/` folder
 
----
+### Screen targets
 
-### 🖼️ SE Image Converter (Standalone Tool)
+| Preset | Best for |
+|--------|----------|
+| `LCD Panel · 1:1` | LCD Panel, Transparent LCD, Holo LCD, Full Block LCD |
+| `Wide LCD Panel · 2:1` | Wide LCD Panel |
+| `Text Panel / Curved · ~5:3` | Text Panel, Curved LCD, many cockpit screens |
+| `Widescreen · 16:9` | Vending Machine, Jukebox, Food Dispenser, Entertainment Corner |
+| `Corner LCD Strip · ~6:1` | Corner LCD panels |
+| `Custom` | Manual control when you want to fine-tune things |
 
-A Windows desktop tool for converting images to Space Engineers LCD formats — no Python required.
+> Click **ⓘ** in the app for the full block reference table.
 
-| Tool | What it does |
-|------|-------------|
-| **Image to DDS** | Converts images to `.dds` files ready for LCD texture mods |
-| **Image to LCD Text** | Converts images to SE colour-code strings for pasting directly into LCD text surfaces |
+### Example mod structure
 
-**Download:** [Releases — space-engineers-image-converter](https://github.com/Godimas/space-engineers-image-converter/releases)
-
----
-
-## 🛠️ Development Setup
-
-**Prerequisites:**
-- Space Engineers + Mod SDK (auto-installs via Steam)
-- Visual Studio or VS Code for C#
-
-**SDK location:**
-```
-D:\SteamLibrary\steamapps\common\SpaceEngineersModSDK\
+```text
+MyMod/
+  Data/
+    LCDTextures.sbc
+  Textures/
+    Models/
+      MyImage.dds
+    Sprites/
+      MyImage.dds
 ```
 
-**Building:**
-1. Reference SDK DLLs for IntelliSense
-2. Write scripts in `Data/Scripts/<namespace>/`
-3. Register LCD scripts in `Data/TextSurfaceScripts.sbc`
-4. Test via `%AppData%\SpaceEngineers\Mods\` or Workshop
+### Example `LCDTextures.sbc`
+
+```xml
+<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <LCDTextures>
+    <LCDTextureDefinition>
+      <Id>
+        <TypeId>LCDTextureDefinition</TypeId>
+        <SubtypeId>MyUniqueImageName</SubtypeId>
+      </Id>
+      <LocalizationId>MyUniqueImageName</LocalizationId>
+      <TexturePath>Textures\Models\MyImage.dds</TexturePath>
+      <SpritePath>Textures\Sprites\MyImage.dds</SpritePath>
+      <Selectable>true</Selectable>
+    </LCDTextureDefinition>
+  </LCDTextures>
+</Definitions>
+```
 
 ---
 
-## 🔗 Key Resources
+## 📋 Image to LCD
 
-- [Space Engineers Modding Wiki](https://spaceengineers.wiki.gg/wiki/Modding/Reference)
-- [Mod API Documentation](https://keensoftwarehouse.github.io/SpaceEngineersModAPI/api/index.html)
-- [Steam Workshop](https://steamcommunity.com/app/244850/workshop/)
+### Quick workflow
+1. Select your image
+2. Choose the target screen preset
+3. Pick a dithering mode — **Floyd-Steinberg** is the best default for photos
+4. Click **Convert to Text**
+5. Click **Copy to Clipboard**
+6. In-game, paste the result into an LCD panel using these settings:
+
+| Setting | Value |
+|---------|-------|
+| `Content` | `Text and Images` |
+| `Font` | `Monospaced` |
+| `Font Size` | use the value shown in the converter |
+| `Text Padding` | `0` |
+
+7. Click **Edit Text**, paste, and admire your extremely unnecessary but excellent screen art
 
 ---
+
+## 📁 Project Files
+
+| File | Purpose |
+|------|---------|
+| `se_launcher.py` | Main launcher for the Python version |
+| `se_lcd_convert.py` | DDS conversion logic |
+| `se_text_convert.py` | LCD text conversion logic |
+| `screen_*.py` | UI screens for the tool |
+| `build.bat` | Build helper for the packaged executable |
+
+## 🐍 Running from Source
+
+```bash
+pip install Pillow
+python se_launcher.py
+```
+
+Requires **Python 3.8+**.
+
+## 📝 Notes
+
+- `texconv.exe` is optional, but strongly recommended for the best DDS output quality
+- the packaged exe is the easiest way to use the tool if you don’t care about the source code
+- this repo covers both the modder workflow and the player-facing LCD text workflow in one place
+
+## 🙌 Credits
+
+Made with ♥ by **Godimas** and **Claude**.
+
+Image-to-LCD encoding was reverse engineered from [Whiplash's Image Converter](https://github.com/Whiplash141/Whips-Image-Converter), with values cross-checked against Space Engineers tools and game files.
 
 ## 🧡 Support
 
-All mods are free and always will be. If they're adding to your game, consider supporting on Patreon — it helps keep the updates and new mods coming.
+This tool is free and always will be. If it saves you time on your next build, consider supporting on Patreon — it helps keep the tools and mods coming.
 
 [![Support on Patreon](https://raw.githubusercontent.com/Godimas101/personal-projects/main/patreon/images/buttons/patreon-medium.png)](https://patreon.com/Godimas101)
 
-Looking for the modding tools? Grab everything in one place:
-
-[![SE Modder's Tool Kit](https://raw.githubusercontent.com/Godimas101/personal-projects/main/patreon/images/buttons/git-medium.png)](https://github.com/Godimas101/space-engineers-modders-tool-kit)
-
----
-
-*"Building better blocks, one mod at a time."*
+*May cause an uncontrollable urge to texture every screen on your base.* 🖥️

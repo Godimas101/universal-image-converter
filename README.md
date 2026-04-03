@@ -17,7 +17,7 @@ If you just want to use it, download the exe and go. If you want to tinker, the 
 3. Use **Image to DDS** for mod assets or **Image to LCD** for in-game art
 4. Optionally place [`texconv.exe`](https://github.com/microsoft/DirectXTex/releases/latest) next to the exe for the best DDS quality
 
-![SE Image Converter screenshot](image_converter.png)
+![SE Image Converter screenshot](https://i.imgur.com/HE6HNsv.png)
 
 ## ✨ Features
 

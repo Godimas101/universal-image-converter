@@ -8,11 +8,11 @@ A Windows tool for Space Engineers players and modders who want images to behave
 - turning images into `.dds` textures for LCD mods
 - turning images into pasteable LCD art for in-game screens
 
-If you just want to use it, download the exe and go. If you want to tinker, the Python source is here too.
+If you just want to use it, grab the latest build from the [GitHub Releases page](https://github.com/Godimas101/universal-image-converter/releases/latest). If you want to tinker, the Python source is here too.
 
 ## 🚀 Quick Start
 
-1. Download `SE Image Converter.exe` from the [Releases page](https://github.com/Godimas101/universal-image-converter/releases)
+1. Download `SE Image Converter.exe` from the [latest release](https://github.com/Godimas101/universal-image-converter/releases/latest)
 2. Run it — no Python install is needed for the packaged app
 3. Use **Image to DDS** for mod assets or **Image to LCD** for in-game art
 4. Optionally place [`texconv.exe`](https://github.com/microsoft/DirectXTex/releases/latest) next to the exe for the best DDS quality

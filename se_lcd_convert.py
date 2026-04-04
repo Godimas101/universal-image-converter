@@ -7,9 +7,24 @@ Output format: BC7_UNORM_SRGB (best quality, used by Keen + all major community
 mods).  Requires texconv.exe (DirectXTex) on PATH.  Falls back to DXT5 via
 wand/ImageMagick, then a pure-Python DXT5 encoder as a last resort.
 
-Images are composited onto a black background before encoding. Alpha is set to 1
-throughout — SE TexturePath alpha is inverse emissivity (1 ≈ fully self-lit,
-255 = fully unlit). Alpha=1 is Keen's own recommendation.
+Images are composited onto a black background before encoding.
+
+SE LCD TexturePath textures are rendered fully emissive (matching Keen's own
+LCD assets which all use alpha=0).  The output alpha is blended:
+
+    SE_alpha = source_alpha * (1 - emissive_strength)
+
+At the default emissive_strength=1.0 (full emissive mode, recommended):
+  - All pixels → SE alpha 0 → fully emissive → correct LCD glow, matching
+    how vanilla SE LCD textures are authored by Keen.
+
+At emissive_strength=0.0 (source alpha passthrough):
+  - SE alpha = source alpha (255 for opaque pixels)
+
+Color-space note: texconv requires -srgbi so it treats the intermediate PNG
+as sRGB (not linear).  Without this flag texconv applies gamma 2.2 encoding
+on top of the already-gamma-encoded PNG values, producing double-gamma that
+shifts dark blues to cyan and reds to pink in-game.
 
 Usage:
     python se_lcd_convert.py input.png
@@ -198,20 +213,10 @@ def mip_count(w: int, h: int) -> int:
 # Image preparation
 # ===========================================================================
 
-def _flatten_to_black(img, bg_color=(0, 0, 0)) -> "PIL.Image.Image":
+def _flatten_to_rgb(img, bg_color=(0, 0, 0)) -> "PIL.Image.Image":
     """
-    Composite img onto bg_color and return RGBA with alpha=255.
-
-    NOTE: alpha=255 here (fully opaque) is intentional — Pillow applies
-    premultiplied-alpha math during LANCZOS resize, so resizing with alpha=1
-    (≈0.4% opacity) would quantize every channel to 0 or 255.  The final
-    alpha=1 (SE inverse-emissivity value) is applied after all resize/composite
-    operations, just before encoding.
-
-    SE TexturePath alpha is INVERSE emissivity (confirmed by SE wiki + shader):
-        alpha=0   → emissive = 1.0  (fully self-lit)
-        alpha=1   → emissive ≈ 0.996  (Keen's recommended value for all pixels)
-        alpha=255 → emissive = 0.0  (fully unlit — causes the "dull" appearance)
+    Composite img onto bg_color and return a plain RGB image.
+    Alpha is handled separately — see _extract_alpha().
     """
     from PIL import Image
 
@@ -222,13 +227,52 @@ def _flatten_to_black(img, bg_color=(0, 0, 0)) -> "PIL.Image.Image":
         background = Image.new("RGB", img.size, bg_color)
         alpha = img.split()[-1]
         background.paste(img.convert("RGB"), mask=alpha)
-        rgb = background
+        return background
     else:
-        rgb = img.convert("RGB")
+        return img.convert("RGB")
 
-    r, g, b = rgb.split()
-    a = Image.new("L", rgb.size, 255)
-    return Image.merge("RGBA", (r, g, b, a))
+
+def _extract_alpha(img) -> "PIL.Image.Image":
+    """
+    Return the source alpha channel as a grayscale (L) image.
+    Images with no alpha channel (JPG, etc.) return full-white (255 = opaque).
+    """
+    from PIL import Image
+
+    if img.mode == "P":
+        img = img.convert("RGBA")
+
+    if img.mode in ("RGBA", "LA"):
+        return img.split()[-1]
+
+    # No alpha — treat every pixel as fully opaque
+    return Image.new("L", img.size, 255)
+
+
+def _apply_se_alpha(rgb_canvas: "PIL.Image.Image",
+                    alpha_canvas: "PIL.Image.Image",
+                    emissive_strength: float) -> "PIL.Image.Image":
+    """
+    Merge RGB canvas with SE alpha and return RGBA.
+
+    SE_alpha = source_alpha * (1 - emissive_strength)
+    At emissive_strength=1.0 (default): SE alpha = 0 everywhere → fully
+        emissive. Matches vanilla Keen LCD texture authoring (all alpha=0).
+    At emissive_strength=0.0: source alpha is preserved as-is.
+    """
+    from PIL import Image, ImageChops
+
+    if emissive_strength >= 1.0:
+        se_alpha = Image.new("L", rgb_canvas.size, 0)
+    elif emissive_strength <= 0.0:
+        se_alpha = alpha_canvas.copy()
+    else:
+        # Scale each pixel: SE_alpha = source_alpha * (1 - emissive_strength)
+        factor = 1.0 - emissive_strength
+        se_alpha = alpha_canvas.point(lambda v: int(round(v * factor)))
+
+    r, g, b = rgb_canvas.split()
+    return Image.merge("RGBA", (r, g, b, se_alpha))
 
 
 def _load_image(img_path: Path) -> "PIL.Image.Image":
@@ -246,72 +290,82 @@ def _load_image(img_path: Path) -> "PIL.Image.Image":
 
 
 def _load_and_compose(img_path: Path, preset: ScreenPreset,
-                      bg_color=(0, 0, 0)) -> "PIL.Image.Image":
+                      bg_color=(0, 0, 0),
+                      emissive_strength: float = 0.0) -> "PIL.Image.Image":
     """
-    Load the source image, flatten alpha, scale to fit the visible compose
-    region, and center it on a bg_color DDS canvas of the preset dimensions.
-    Returns an RGB PIL image ready for encoding.
+    Load the source image, scale to fit the visible compose region, and center
+    it on a bg_color canvas of the preset DDS dimensions.
+
+    Source alpha is preserved and used to compute SE alpha:
+        SE_alpha = source_alpha * (1 - emissive_strength)
+    At emissive_strength=1.0 (default): SE alpha = 0 → fully emissive (correct
+    LCD look, matching vanilla Keen textures).
     """
     from PIL import Image
 
-    img = _flatten_to_black(_load_image(img_path), bg_color)
+    raw = _load_image(img_path)
+    src_alpha = _extract_alpha(raw)
+    rgb       = _flatten_to_rgb(raw, bg_color)
 
-    # Scale image to fit within surface region (letterbox / pillarbox)
-    scale = min(preset.surface_w / img.width, preset.surface_h / img.height)
-    new_w = max(1, round(img.width  * scale))
-    new_h = max(1, round(img.height * scale))
-    if (new_w, new_h) != img.size:
-        img = img.resize((new_w, new_h), Image.LANCZOS)
+    # Scale to fit within preset surface region (letterbox / pillarbox)
+    scale = min(preset.surface_w / rgb.width, preset.surface_h / rgb.height)
+    new_w = max(1, round(rgb.width  * scale))
+    new_h = max(1, round(rgb.height * scale))
+    if (new_w, new_h) != rgb.size:
+        rgb       = rgb.resize((new_w, new_h), Image.LANCZOS)
+        src_alpha = src_alpha.resize((new_w, new_h), Image.LANCZOS)
 
-    canvas = Image.new("RGBA", (preset.dds_w, preset.dds_h), (*bg_color, 255))
+    # Composite onto canvas — background areas get alpha=0 (emissive black)
+    rgb_canvas   = Image.new("RGB", (preset.dds_w, preset.dds_h), bg_color)
+    alpha_canvas = Image.new("L",   (preset.dds_w, preset.dds_h), 0)
     x = (preset.dds_w - new_w) // 2
     y = (preset.dds_h - new_h) // 2
-    canvas.paste(img, (x, y))
+    rgb_canvas.paste(rgb, (x, y))
+    alpha_canvas.paste(src_alpha, (x, y))
 
-    # Apply SE inverse-emissivity alpha=1 now that all resizing is done.
-    r, g, b, _ = canvas.split()
-    return Image.merge("RGBA", (r, g, b, Image.new("L", canvas.size, 1)))
+    return _apply_se_alpha(rgb_canvas, alpha_canvas, emissive_strength)
 
 
 def _load_and_compose_custom(img_path: Path, max_width: int, max_height: int,
                               preserve_aspect: bool,
-                              bg_color=(0, 0, 0)) -> "PIL.Image.Image":
+                              bg_color=(0, 0, 0),
+                              emissive_strength: float = 0.0) -> "PIL.Image.Image":
     """
     Load and resize to user-specified dimensions.
     Each dimension is rounded to the nearest power of two, then capped at
     max_width / max_height independently.
     If preserve_aspect=True, scale uniformly so the image fits within the
     max_width × max_height box before rounding.
-    Returns an RGBA PIL image.
+    Returns an RGBA PIL image with SE inverse-emissivity alpha applied.
     """
     from PIL import Image
 
-    img = _flatten_to_black(_load_image(img_path), bg_color)
-    orig_w, orig_h = img.size
+    raw = _load_image(img_path)
+    src_alpha = _extract_alpha(raw)
+    rgb       = _flatten_to_rgb(raw, bg_color)
+    orig_w, orig_h = rgb.size
 
     # Canvas size: round user dimensions to nearest power-of-two.
     target_w = _nearest_pow2(max_width)
     target_h = _nearest_pow2(max_height)
 
     if preserve_aspect:
-        # Scale image to fit within canvas, preserving aspect ratio.
         scale    = min(target_w / orig_w, target_h / orig_h)
         scaled_w = max(1, round(orig_w * scale))
         scaled_h = max(1, round(orig_h * scale))
-        resized  = img.resize((scaled_w, scaled_h), Image.LANCZOS)
-        # Paste centred onto a canvas of the full target size.
-        canvas = Image.new("RGBA", (target_w, target_h), (*bg_color, 255))
+        rgb       = rgb.resize((scaled_w, scaled_h), Image.LANCZOS)
+        src_alpha = src_alpha.resize((scaled_w, scaled_h), Image.LANCZOS)
+        rgb_canvas   = Image.new("RGB", (target_w, target_h), bg_color)
+        alpha_canvas = Image.new("L",   (target_w, target_h), 0)
         x = (target_w - scaled_w) // 2
         y = (target_h - scaled_h) // 2
-        canvas.paste(resized, (x, y))
-        img = canvas
+        rgb_canvas.paste(rgb, (x, y))
+        alpha_canvas.paste(src_alpha, (x, y))
     else:
-        # Stretch to fill the full canvas.
-        img = img.resize((target_w, target_h), Image.LANCZOS)
+        rgb_canvas   = rgb.resize((target_w, target_h), Image.LANCZOS)
+        alpha_canvas = src_alpha.resize((target_w, target_h), Image.LANCZOS)
 
-    # Apply SE inverse-emissivity alpha=1 now that all resizing is done.
-    r, g, b, _ = img.split()
-    return Image.merge("RGBA", (r, g, b, Image.new("L", img.size, 1)))
+    return _apply_se_alpha(rgb_canvas, alpha_canvas, emissive_strength)
 
 
 # ===========================================================================
@@ -331,6 +385,7 @@ def _encode_with_texconv(texconv_path: str, img: "PIL.Image.Image",
         cmd = [
             texconv_path,
             "-f", "BC7_UNORM_SRGB",
+            "-srgbi",           # input PNG is sRGB-encoded; prevents double-gamma
             "-if", "CUBIC",
             "-bc", "x",
             "-sepalpha",
@@ -548,7 +603,8 @@ def convert_image(img_path: Path, out_dir: Path,
                   custom_max_size: int = DEFAULT_MAX_SIZE,
                   custom_max_height: int | None = None,
                   custom_preserve_aspect: bool = False,
-                  bg_color: tuple = (0, 0, 0)) -> None:
+                  bg_color: tuple = (0, 0, 0),
+                  emissive_strength: float = 1.0) -> None:
     """
     Convert a single image to a SE LCD DDS texture.
 
@@ -565,9 +621,10 @@ def convert_image(img_path: Path, out_dir: Path,
     if preset is CUSTOM_PRESET:
         max_h = custom_max_height if custom_max_height is not None else custom_max_size
         img = _load_and_compose_custom(img_path, custom_max_size, max_h,
-                                       custom_preserve_aspect, bg_color)
+                                       custom_preserve_aspect, bg_color,
+                                       emissive_strength)
     else:
-        img = _load_and_compose(img_path, preset, bg_color)
+        img = _load_and_compose(img_path, preset, bg_color, emissive_strength)
 
     dds_w, dds_h = img.size
     mips = mip_count(dds_w, dds_h) if gen_mipmaps else 1
@@ -654,6 +711,10 @@ Examples:
         help="Preserve aspect ratio in 'custom' mode (letterbox to pow2 dimensions).")
     parser.add_argument("--no-mipmaps", action="store_true",
         help="Skip mipmap generation (not recommended for SE).")
+    parser.add_argument("--emissive", "-e", type=float, default=0.0,
+        metavar="0.0-1.0",
+        help="Emissive strength (default: 0.0 = source alpha, colour-accurate). "
+             "Increase for a glowing LCD effect at the cost of colour accuracy.")
     parser.add_argument("--no-texconv", action="store_true",
         help="Skip texconv.exe even if found on PATH.")
     parser.add_argument("--no-wand", action="store_true",
@@ -675,6 +736,9 @@ Examples:
     if preset is CUSTOM_PRESET:
         if args.size <= 0 or (args.size & (args.size - 1)) != 0:
             parser.error(f"--size must be a power of two. Got: {args.size}")
+
+    if not (0.0 <= args.emissive <= 1.0):
+        parser.error(f"--emissive must be between 0.0 and 1.0. Got: {args.emissive}")
 
     gen_mipmaps = not args.no_mipmaps
 
@@ -708,6 +772,7 @@ Examples:
               f"({preset.dds_w}×{preset.dds_h} DDS, "
               f"{preset.surface_w}×{preset.surface_h} visible)")
     print(f"  Mipmaps : {'yes' if gen_mipmaps else 'no'}")
+    print(f"  Emissive: {args.emissive:.0%}")
     if not use_texconv:
         print("  TIP: Install texconv.exe for BC7 output (best quality).")
         print("       https://github.com/microsoft/DirectXTex/releases")
@@ -729,7 +794,8 @@ Examples:
             convert_image(input_path, out_dir, preset, gen_mipmaps,
                           use_texconv, use_wand,
                           custom_max_size=args.size,
-                          custom_preserve_aspect=args.preserve_aspect)
+                          custom_preserve_aspect=args.preserve_aspect,
+                          emissive_strength=args.emissive)
             print("\nDone.")
         except Exception as e:
             print(f"\nERROR: {e}")
@@ -761,7 +827,8 @@ Examples:
                 convert_image(img_path, out_dir, preset, gen_mipmaps,
                               use_texconv, use_wand,
                               custom_max_size=args.size,
-                              custom_preserve_aspect=args.preserve_aspect)
+                              custom_preserve_aspect=args.preserve_aspect,
+                              emissive_strength=args.emissive)
                 ok += 1
             except Exception as e:
                 print(f"  [FAILED] {img_path.name}: {e}")

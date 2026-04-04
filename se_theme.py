@@ -108,6 +108,13 @@ def configure_styles(style: ttk.Style) -> None:
         selectbackground=[("readonly", PANEL)],
         selectforeground=[("readonly", CYAN)])
 
+    style.configure("SE.Horizontal.TScale",
+        background=CYAN, troughcolor=PANEL,
+        bordercolor=BORDER, darkcolor=CYAN, lightcolor=CYAN,
+        sliderlength=16, sliderthickness=14)
+    style.map("SE.Horizontal.TScale",
+        background=[("active", CYAN), ("disabled", BORDER)])
+
     style.configure("SE.Vertical.TScrollbar",
         background=PANEL, troughcolor=BG,
         bordercolor=BORDER, arrowcolor=CYAN,

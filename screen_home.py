@@ -151,7 +151,7 @@ class HomeScreen(ttk.Frame):
         patreon_lbl.bind("<Enter>", lambda _e: patreon_lbl.config(fg=T.CYAN))
         patreon_lbl.bind("<Leave>", lambda _e: patreon_lbl.config(fg=T.BLUE))
 
-        ttk.Label(self, text="v1.3  \u00b7  SE Image Converter",
+        ttk.Label(self, text="v1.4  \u00b7  SE Image Converter",
                   style="Muted.TLabel").pack(anchor="center", pady=(4, 10))
 
     # -----------------------------------------------------------------------

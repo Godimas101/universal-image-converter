@@ -601,6 +601,24 @@ class SEConverterApp(tk.Tk):
         self._btn_clear_out = self._se_button(outfolder_ctrl, "RESET", self._on_reset_outfolder, width=7)
         self._btn_clear_out.pack(side="left")
 
+        # Row 4: Emissive Strength
+        ttk.Label(settings_frame, text="Emissive:", style="TLabel").grid(
+            row=4, column=0, sticky="w", pady=(6, 0))
+        emissive_ctrl = ttk.Frame(settings_frame, style="TFrame")
+        emissive_ctrl.grid(row=4, column=1, sticky="w", pady=(6, 0))
+
+        self._emissive_var = tk.DoubleVar(value=0.0)
+        emissive_slider = ttk.Scale(
+            emissive_ctrl, from_=0.0, to=1.0, orient="horizontal",
+            variable=self._emissive_var, length=160,
+            command=self._on_emissive_change,
+            style="SE.Horizontal.TScale",
+        )
+        emissive_slider.pack(side="left", padx=(0, 8))
+        self._emissive_label_var = tk.StringVar(value="0%")
+        ttk.Label(emissive_ctrl, textvariable=self._emissive_label_var,
+                  style="Muted.TLabel", width=5).pack(side="left")
+
         self._separator(pady=(14, 10))
 
         # ── Convert Button ───────────────────────────────────────────────────
@@ -786,6 +804,10 @@ class SEConverterApp(tk.Tk):
         self._out_folder = None
         self._outfolder_var.set("same as source file")
 
+    def _on_emissive_change(self, _val=None) -> None:
+        pct = int(round(self._emissive_var.get() * 100))
+        self._emissive_label_var.set(f"{pct}%")
+
     def _on_affix_change(self, _event=None):
         mode = self._affix_mode_var.get()
         self._affix_entry.config(state="normal" if mode != "None" else "disabled")
@@ -885,7 +907,8 @@ class SEConverterApp(tk.Tk):
                 return
 
         self._start_conversion(preset, gen_mipmaps, prefix, suffix,
-                               custom_size, custom_asp)
+                               custom_size, custom_asp,
+                               self._emissive_var.get())
 
     # -----------------------------------------------------------------------
     # Listbox management
@@ -912,7 +935,8 @@ class SEConverterApp(tk.Tk):
     # -----------------------------------------------------------------------
 
     def _start_conversion(self, preset, gen_mipmaps: bool, prefix: str, suffix: str,
-                          custom_size: int, custom_asp: bool):
+                          custom_size: int, custom_asp: bool,
+                          emissive_strength: float = 1.0):
         self._converting = True
         self._set_controls_state("disabled")
         self._progress_var.set(0.0)
@@ -952,7 +976,7 @@ class SEConverterApp(tk.Tk):
         t = threading.Thread(
             target=self._worker,
             args=(files_snapshot, out_folder, preset, gen_mipmaps, prefix, suffix,
-                  custom_size, custom_asp,
+                  custom_size, custom_asp, emissive_strength,
                   self._use_texconv, self._use_wand),
             daemon=True,
         )
@@ -960,7 +984,7 @@ class SEConverterApp(tk.Tk):
         self.after(50, self._poll_queue)
 
     def _worker(self, files, out_folder, preset, gen_mipmaps, prefix, suffix,
-                custom_size, custom_asp, use_texconv, use_wand):
+                custom_size, custom_asp, emissive_strength, use_texconv, use_wand):
         """Runs in background thread. Sends messages to main thread via _q."""
         import io as _io
         total  = len(files)
@@ -990,6 +1014,7 @@ class SEConverterApp(tk.Tk):
                         suffix=suffix,
                         custom_max_size=custom_size,
                         custom_preserve_aspect=custom_asp,
+                        emissive_strength=emissive_strength,
                     )
 
                     printed = captured.getvalue().strip()

@@ -296,6 +296,24 @@ class ImageConverterScreen(ttk.Frame):
         ttk.Label(bg_ctrl, textvariable=self._bg_hex_var,
                   style="Muted.TLabel").pack(side="left")
 
+        # Row 5: Emissive Strength
+        ttk.Label(settings_frame, text="Emissive:", style="TLabel").grid(
+            row=5, column=0, sticky="w", pady=(6, 0))
+        emissive_ctrl = ttk.Frame(settings_frame, style="TFrame")
+        emissive_ctrl.grid(row=5, column=1, sticky="w", pady=(6, 0))
+
+        self._emissive_var = tk.DoubleVar(value=1.0)
+        emissive_slider = ttk.Scale(
+            emissive_ctrl, from_=0.0, to=1.0, orient="horizontal",
+            variable=self._emissive_var, length=160,
+            command=self._on_emissive_change,
+            style="SE.Horizontal.TScale",
+        )
+        emissive_slider.pack(side="left", padx=(0, 8))
+        self._emissive_label_var = tk.StringVar(value="100%")
+        ttk.Label(emissive_ctrl, textvariable=self._emissive_label_var,
+                  style="Muted.TLabel", width=5).pack(side="left")
+
         T.separator(self, pady=(14, 10))
 
         # ── Convert Button ────────────────────────────────────────────────────
@@ -448,6 +466,10 @@ class ImageConverterScreen(ttk.Frame):
     def _on_width_changed(self, *_args) -> None:
         pass  # no height-locking; width and height are always independent
 
+    def _on_emissive_change(self, _val=None) -> None:
+        pct = int(round(self._emissive_var.get() * 100))
+        self._emissive_label_var.set(f"{pct}%")
+
     def _on_pick_bg(self) -> None:
         from tkinter import colorchooser
         current = "#{:02x}{:02x}{:02x}".format(*self._bg_color)
@@ -562,6 +584,7 @@ class ImageConverterScreen(ttk.Frame):
                     custom_max_height=c_height,
                     custom_preserve_aspect=self._aspect_var.get(),
                     bg_color=self._bg_color,
+                    emissive_strength=self._emissive_var.get(),
                 )
                 self._q.put(("log", f"  ✓ Saved: {f.stem}.dds", "success"))
             except Exception as exc:

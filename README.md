@@ -17,7 +17,7 @@ If you just want to use it, grab the latest build from the [GitHub Releases page
 3. Use **Image to DDS** for mod assets or **Image to LCD** for in-game art
 4. Optionally place [`texconv.exe`](https://github.com/microsoft/DirectXTex/releases/latest) next to the exe for the best DDS quality
 
-![SE Image Converter screenshot](https://i.imgur.com/HE6HNsv.png)
+<img src="https://github.com/Godimas101/Godimas101/blob/main/images/screenshots/universal-image-converter.png?raw=true" alt="Alt text" width="500">
 
 ## ✨ Features
 

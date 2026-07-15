@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=170&color=0:0B1021,45:0EA5E9,100:2563EB&text=Universal%20Image%20Converter&fontColor=ffffff&fontAlignY=35&fontSize=32&desc=Space%20Engineers%20LCD%20and%20texture%20art%20tools&descAlignY=57&descSize=18" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&height=200&color=0:0B1021,45:0EA5E9,100:2563EB&text=Universal%20Image%20Converter&fontColor=ffffff&fontAlignY=42&fontSize=30&desc=Space%20Engineers%20LCD%20and%20texture%20art%20tools&descAlignY=68&descSize=17" />
 </p>
 
 > **"Because blank LCDs are just missed opportunities with better lighting."**

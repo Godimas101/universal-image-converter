@@ -1,8 +1,11 @@
 # Changelog
 
-## [Unreleased]
-- CI: auto-build + publish the .exe on merge to main ([#4](https://github.com/Godimas101/universal-image-converter/issues/4)) — closed 2026-07-25 by @Godimas101
 All notable changes to SE Universal Image Converter. Format follows [Keep a Changelog](https://keepachangelog.com/).
+
+## [Unreleased]
+
+- Embed an in-app Report-a-bug link ([#5](https://github.com/Godimas101/universal-image-converter/issues/5)) — closed 2026-07-25 by @Godimas101
+- CI: auto-build + publish the .exe on merge to main ([#4](https://github.com/Godimas101/universal-image-converter/issues/4)) — closed 2026-07-25 by @Godimas101
 
 ## [1.5.0] — 2026-07-25
 

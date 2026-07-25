@@ -78,11 +78,30 @@ class ImageConverterScreen(ttk.Frame):
             self._use_wand    = False
 
         self._build_ui()
+        self._setup_shortcuts()
+        self._update_convert_state()
         self._log_startup_info()
+
+
+    def _on_info(self):
+        T.show_shortcuts(self.winfo_toplevel(), "Image to DDS — Shortcuts", [
+            ("Ctrl+O", "Add / open images"),
+            ("Return", "Start conversion"),
+            ("Esc", "Back to home"),
+            ("F1", "Open online help"),
+        ])
+
+    def _setup_shortcuts(self):
+        T.bind_shortcuts(self, {
+            "<Control-o>": self._on_select,
+            "<Return>": self._on_convert if hasattr(self, '_on_convert') else lambda: None,
+            "<Escape>": lambda: self._app.show_screen("home"),
+        })
 
     # -----------------------------------------------------------------------
     # UI Construction
     # -----------------------------------------------------------------------
+
 
     def _build_ui(self):
         pad = dict(padx=16, pady=0)
@@ -93,6 +112,7 @@ class ImageConverterScreen(ttk.Frame):
             subtitle="Convert images to DDS format for Space Engineers LCD mods.",
             back_cb=lambda: self._app.show_screen("home"),
             note=f"Supported: {', '.join(sorted(e.lstrip('.').upper() for e in SUPPORTED_EXTS))}" if _IMPORT_OK else "",
+            info_cb=self._on_info,
         )
         T.separator(self, pady=(8, 8))
 
@@ -100,7 +120,7 @@ class ImageConverterScreen(ttk.Frame):
             tk.Label(self,
                      text=f"⚠  Could not load se_lcd_convert.py\n\n{_IMPORT_ERR}",
                      bg=T.BG, fg=T.RED,
-                     font=("Courier New", 10),
+                     font=("Segoe UI", 10),
                      justify="left", wraplength=620).pack(padx=24, pady=24, anchor="w")
             return
 
@@ -132,7 +152,7 @@ class ImageConverterScreen(ttk.Frame):
 
         self._list_placeholder = tk.Label(
             lb_container, text="No images selected",
-            bg=T.PANEL, fg=T.MUTED, font=("Courier New", 9))
+            bg=T.PANEL, fg=T.MUTED, font=("Segoe UI", 9))
         self._list_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
         btn_frame = ttk.Frame(list_frame, style="Panel.TFrame")
@@ -197,7 +217,7 @@ class ImageConverterScreen(ttk.Frame):
         screen_combo = ttk.Combobox(
             screen_ctrl, textvariable=self._screen_var,
             values=_PRESET_DISPLAY_NAMES, state="readonly",
-            width=30, style="SE.TCombobox", font=T.FONT_LABEL,
+            width=30, style="SE.TCombobox", font=T.FONT_MONO_BODY,
         )
         screen_combo.pack(side="left", padx=(0, 6))
         screen_combo.bind("<<ComboboxSelected>>", self._on_screen_change)
@@ -359,7 +379,7 @@ class ImageConverterScreen(ttk.Frame):
             command=self._clear_log,
             bg=T.PANEL, fg=T.MUTED,
             activebackground=T.HOVER, activeforeground=T.TEXT,
-            font=("Courier New", 8), relief="flat", bd=0, cursor="hand2",
+            font=("Segoe UI", 8), relief="flat", bd=0, cursor="hand2",
         ).pack(side="right")
 
         self._log_text = T.log_text_widget(log_frame)
@@ -448,6 +468,13 @@ class ImageConverterScreen(ttk.Frame):
             self._lb_scrollbar.pack_forget()
             self._list_placeholder.place(relx=0.5, rely=0.5, anchor="center")
             self._file_count_var.set("")
+        self._update_convert_state()
+
+    def _update_convert_state(self) -> None:
+        """Keep CONVERT disabled until there are images and Pillow is present."""
+        if self._converting:
+            return
+        T.set_hero_enabled(self._btn_convert, bool(self._files) and self._has_pillow)
 
     def _on_affix_change(self, _e=None) -> None:
         mode = self._affix_mode_var.get()
@@ -554,7 +581,7 @@ class ImageConverterScreen(ttk.Frame):
 
     def _start_conversion(self, screen_name, gen_mipmaps, prefix, suffix, out_dir):
         self._converting = True
-        self._btn_convert.config(state="disabled")
+        T.set_hero_enabled(self._btn_convert, False, text="  ⟳  CONVERTING…  ")
         self._progress_var.set(0)
         self._pct_var.set("  0%")
         self._status_var.set("")
@@ -570,7 +597,11 @@ class ImageConverterScreen(ttk.Frame):
         preset   = get_preset(screen_name)
         c_width  = int(self._width_var.get())  if self._width_var.get().isdigit()  else DEFAULT_MAX_SIZE
         c_height = int(self._height_var.get()) if self._height_var.get().isdigit() else DEFAULT_MAX_SIZE
+        # Clamp so an extreme custom size can't exhaust memory
+        c_width  = max(1, min(c_width,  8192))
+        c_height = max(1, min(c_height, 8192))
 
+        ok = fail = 0
         for i, f in enumerate(files, 1):
             od = out_dir or f.parent
             self._q.put(("status", f"[{i}/{total}] {f.name}"))
@@ -587,13 +618,15 @@ class ImageConverterScreen(ttk.Frame):
                     emissive_strength=self._emissive_var.get(),
                 )
                 self._q.put(("log", f"  ✓ Saved: {f.stem}.dds", "success"))
+                ok += 1
             except Exception as exc:
                 self._q.put(("log", f"  ✗ Error: {exc}", "error"))
+                fail += 1
 
             pct = int(i / total * 100)
             self._q.put(("progress", pct))
 
-        self._q.put(("done", total))
+        self._q.put(("done", ok, fail))
 
     def _poll_queue(self) -> None:
         try:
@@ -608,14 +641,17 @@ class ImageConverterScreen(ttk.Frame):
                     self._progress_var.set(msg[1])
                     self._pct_var.set(f"{msg[1]:3d}%")
                 elif kind == "done":
+                    ok, fail = msg[1], msg[2]
+                    summary = f"Done — {ok} converted" + (f", {fail} failed" if fail else "")
                     self._progress_var.set(100)
                     self._pct_var.set("100%")
-                    self._status_var.set(f"Done — {msg[1]} file(s) converted.")
+                    self._status_var.set(summary)
                     self._log_sep()
-                    self._log(f"Done — {msg[1]} file(s) converted.", "success")
+                    self._log(summary, "warn" if fail else "success")
                     self._log_sep()
                     self._converting = False
-                    self._btn_convert.config(state="normal")
+                    self._btn_convert.config(text="  ▶  CONVERT  ▶  ")
+                    self._update_convert_state()
                     return
         except queue.Empty:
             pass

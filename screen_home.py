@@ -22,12 +22,28 @@ class HomeScreen(ttk.Frame):
         self._app = app
         self._supporters_window = None
         self._build()
+        self._setup_shortcuts()
 
     def _open_supporters(self):
         if self._supporters_window and self._supporters_window.winfo_exists():
             self._supporters_window.lift()
             return
         self._supporters_window = T.SupportersWindow(self.winfo_toplevel())
+
+    def _on_info(self):
+        T.show_shortcuts(self.winfo_toplevel(), "Home Screen — Shortcuts", [
+            ("1", "Setup & Requirements"),
+            ("2", "Image to DDS (Modders)"),
+            ("3", "Image to LCD (Players)"),
+            ("F1", "Open online help"),
+        ])
+
+    def _setup_shortcuts(self):
+        T.bind_shortcuts(self, {
+            "<Key-1>": lambda: self._app.show_screen("setup"),
+            "<Key-2>": lambda: self._app.show_screen("image_converter"),
+            "<Key-3>": lambda: self._app.show_screen("text_converter"),
+        })
 
     # -----------------------------------------------------------------------
 
@@ -37,6 +53,7 @@ class HomeScreen(ttk.Frame):
             self,
             title="UNIVERSAL IMAGE CONVERTER",
             subtitle="Space Engineers modding and player utilities.",
+            info_cb=self._on_info,
         )
         T.separator(self, pady=(10, 14))
 
@@ -84,7 +101,7 @@ class HomeScreen(ttk.Frame):
 
         godimas_link = tk.Label(made_row, text="Godimas",
                                 bg=T.BG, fg=T.BLUE,
-                                font=("Courier New", 9, "underline"),
+                                font=("Segoe UI", 9, "underline"),
                                 cursor="hand2")
         godimas_link.pack(side="left")
         godimas_link.bind("<Button-1>",
@@ -98,7 +115,7 @@ class HomeScreen(ttk.Frame):
 
         claude_link = tk.Label(made_row, text="Claude",
                                bg=T.BG, fg=T.BLUE,
-                               font=("Courier New", 9, "underline"),
+                               font=("Segoe UI", 9, "underline"),
                                cursor="hand2")
         claude_link.pack(side="left")
         claude_link.bind("<Button-1>",
@@ -114,7 +131,7 @@ class HomeScreen(ttk.Frame):
         link = tk.Label(credit_row,
                         text="Whiplash's Image Converter",
                         bg=T.BG, fg=T.BLUE,
-                        font=("Courier New", 9, "underline"),
+                        font=("Segoe UI", 9, "underline"),
                         cursor="hand2")
         link.pack(side="left")
         link.bind("<Button-1>",
@@ -131,7 +148,7 @@ class HomeScreen(ttk.Frame):
 
         supporters_lbl = tk.Label(patreon_row, text="Supporters",
                                   bg=T.BG, fg=T.BLUE,
-                                  font=("Courier New", 9, "underline"),
+                                  font=("Segoe UI", 9, "underline"),
                                   cursor="hand2")
         supporters_lbl.pack(side="left")
         supporters_lbl.bind("<Button-1>", lambda _e: self._open_supporters())
@@ -143,7 +160,7 @@ class HomeScreen(ttk.Frame):
 
         patreon_lbl = tk.Label(patreon_row, text="Patreon",
                                bg=T.BG, fg=T.BLUE,
-                               font=("Courier New", 9, "underline"),
+                               font=("Segoe UI", 9, "underline"),
                                cursor="hand2")
         patreon_lbl.pack(side="left")
         patreon_lbl.bind("<Button-1>",
@@ -151,8 +168,12 @@ class HomeScreen(ttk.Frame):
         patreon_lbl.bind("<Enter>", lambda _e: patreon_lbl.config(fg=T.CYAN))
         patreon_lbl.bind("<Leave>", lambda _e: patreon_lbl.config(fg=T.BLUE))
 
-        ttk.Label(self, text="v1.4  \u00b7  SE Image Converter",
-                  style="Muted.TLabel").pack(anchor="center", pady=(4, 10))
+        bug_row = tk.Frame(self, bg=T.BG)
+        bug_row.pack(anchor="center", pady=(6, 2))
+        T.bug_link(bug_row, bg=T.BG).pack()
+
+        ttk.Label(self, text="v1.5.0  ·  SE Image Converter",
+                  style="Muted.TLabel").pack(anchor="center", pady=(0, 10))
 
     # -----------------------------------------------------------------------
 
@@ -187,13 +208,13 @@ class HomeScreen(ttk.Frame):
 
         title_lbl = tk.Label(text_frame, text=title,
                              bg=T.PANEL, fg=T.CYAN,
-                             font=("Courier New", 11, "bold"),
+                             font=("Segoe UI Semibold", 11),
                              anchor="w")
         title_lbl.pack(anchor="w")
 
         desc_lbl = tk.Label(text_frame, text=desc,
                             bg=T.PANEL, fg=T.MUTED,
-                            font=("Courier New", 9),
+                            font=("Segoe UI", 9),
                             anchor="w", justify="left")
         desc_lbl.pack(anchor="w", pady=(2, 0))
 

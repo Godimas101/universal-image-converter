@@ -41,8 +41,21 @@ class SetupScreen(ttk.Frame):
         super().__init__(parent, style="TFrame")
         self._app = app
         self._build()
+        self._setup_shortcuts()
 
     # -----------------------------------------------------------------------
+
+
+    def _on_info(self):
+        T.show_shortcuts(self.winfo_toplevel(), "Setup — Shortcuts", [
+            ("Esc", "Back to home"),
+            ("F1", "Open the online help"),
+        ])
+
+    def _setup_shortcuts(self):
+        T.bind_shortcuts(self, {
+            "<Escape>": lambda: self._app.show_screen("home"),
+        })
 
     def _build(self):
         T.build_header(
@@ -50,6 +63,7 @@ class SetupScreen(ttk.Frame):
             title="SETUP  &  REQUIREMENTS",
             subtitle="No installation required — just the exe and one optional tool.",
             back_cb=lambda: self._app.show_screen("home"),
+            info_cb=self._on_info,
         )
         T.separator(self, pady=(10, 0))
 
@@ -129,7 +143,7 @@ class SetupScreen(ttk.Frame):
                  text=("Adding a tool to PATH means Windows can find it from anywhere,\n"
                        "so you don't need to place it next to the exe."),
                  bg=T.PANEL, fg=T.TEXT,
-                 font=("Courier New", 9), justify="left", anchor="w").pack(anchor="w")
+                 font=("Segoe UI", 9), justify="left", anchor="w").pack(anchor="w")
 
         tk.Frame(path_inner, bg=T.BORDER, height=1).pack(fill="x", pady=(8, 6))
 
@@ -155,7 +169,7 @@ class SetupScreen(ttk.Frame):
         )
         tk.Label(path_inner, text=steps_text,
                  bg=T.PANEL, fg=T.MUTED,
-                 font=("Courier New", 8), justify="left", anchor="w").pack(anchor="w")
+                 font=("Segoe UI", 8), justify="left", anchor="w").pack(anchor="w")
 
         tk.Frame(parent, bg=T.BG, height=20).pack()
 
@@ -170,7 +184,7 @@ class SetupScreen(ttk.Frame):
     def _body(self, parent, text: str) -> None:
         tk.Label(parent, text=text,
                  bg=T.BG, fg=T.TEXT,
-                 font=("Courier New", 9),
+                 font=("Segoe UI", 9),
                  justify="left", anchor="w").pack(anchor="w", padx=24, pady=(2, 0))
 
     def _rule(self, parent) -> None:
@@ -195,22 +209,22 @@ class SetupScreen(ttk.Frame):
 
         tk.Label(top, text=name,
                  bg=T.PANEL, fg=T.CYAN,
-                 font=("Courier New", 11, "bold")).pack(side="left")
+                 font=("Segoe UI Semibold", 11)).pack(side="left")
 
         badge_color = T.GREEN if status_ok else T.RED
         badge_text  = f"  \u2713 {status_text}  " if status_ok else f"  \u2717 {status_text}  "
         tk.Label(top, text=badge_text,
                  bg=badge_color, fg=T.BG,
-                 font=("Courier New", 8, "bold")).pack(side="left", padx=(10, 0))
+                 font=("Segoe UI Semibold", 8)).pack(side="left", padx=(10, 0))
 
         tk.Label(top, text=f"Required by: {required_by}",
                  bg=T.PANEL, fg=T.MUTED,
-                 font=("Courier New", 8)).pack(side="right")
+                 font=("Segoe UI", 8)).pack(side="right")
 
         # Description
         tk.Label(inner, text=desc,
                  bg=T.PANEL, fg=T.TEXT,
-                 font=("Courier New", 9),
+                 font=("Segoe UI", 9),
                  justify="left", anchor="w").pack(anchor="w", pady=(6, 0))
 
         if not status_ok:
@@ -218,17 +232,17 @@ class SetupScreen(ttk.Frame):
 
             tk.Label(inner, text=install_note,
                      bg=T.PANEL, fg=T.MUTED,
-                     font=("Courier New", 8),
+                     font=("Segoe UI", 8),
                      justify="left", anchor="w").pack(anchor="w")
 
             link_row = tk.Frame(inner, bg=T.PANEL)
             link_row.pack(anchor="w", pady=(6, 0))
             tk.Label(link_row, text="Download: ",
                      bg=T.PANEL, fg=T.MUTED,
-                     font=("Courier New", 8)).pack(side="left")
+                     font=("Segoe UI", 8)).pack(side="left")
             link = tk.Label(link_row, text=download_url,
                             bg=T.PANEL, fg=T.BLUE,
-                            font=("Courier New", 8, "underline"),
+                            font=("Segoe UI", 8, "underline"),
                             cursor="hand2")
             link.pack(side="left")
             link.bind("<Button-1>", lambda _e, u=download_url: webbrowser.open(u))

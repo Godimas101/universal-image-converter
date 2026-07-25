@@ -196,10 +196,28 @@ class TextConverterScreen(ttk.Frame):
         self._bg_color      = (0, 0, 0) # background / letterbox fill colour
 
         self._build_ui()
+        self._setup_shortcuts()
+        self._update_convert_state()
 
     # -----------------------------------------------------------------------
     # UI Construction
     # -----------------------------------------------------------------------
+
+
+    def _on_info(self):
+        T.show_shortcuts(self.winfo_toplevel(), "Image to LCD — Shortcuts", [
+            ("Ctrl+O", "Add / open an image"),
+            ("Enter", "Generate the LCD text"),
+            ("Esc", "Back to home"),
+            ("F1", "Open the online help"),
+        ])
+
+    def _setup_shortcuts(self):
+        T.bind_shortcuts(self, {
+            "<Control-o>": self._on_select,
+            "<Return>": self._on_convert,
+            "<Escape>": lambda: self._app.show_screen("home"),
+        })
 
     def _build_ui(self):
         pad = dict(padx=16, pady=0)
@@ -209,6 +227,7 @@ class TextConverterScreen(ttk.Frame):
             title="IMAGE TO LCD",
             subtitle="Convert images to pasteable SE LCD text strings.  No modding required.",
             back_cb=lambda: self._app.show_screen("home"),
+            info_cb=self._on_info,
         )
         T.separator(self, pady=(8, 8))
 
@@ -236,7 +255,7 @@ class TextConverterScreen(ttk.Frame):
 
         self._list_placeholder = tk.Label(
             lb_container, text="No image selected",
-            bg=T.PANEL, fg=T.MUTED, font=("Courier New", 9))
+            bg=T.PANEL, fg=T.MUTED, font=("Segoe UI", 9))
         self._list_placeholder.place(relx=0.5, rely=0.5, anchor="center")
 
         btn_frame = ttk.Frame(list_frame, style="Panel.TFrame")
@@ -265,7 +284,7 @@ class TextConverterScreen(ttk.Frame):
         screen_combo = ttk.Combobox(
             target_ctrl, textvariable=self._screen_var,
             values=PRESET_DISPLAY_NAMES, state="readonly",
-            width=30, style="SE.TCombobox", font=T.FONT_LABEL,
+            width=30, style="SE.TCombobox", font=T.FONT_MONO_BODY,
         )
         screen_combo.pack(side="left", padx=(0, 6))
         screen_combo.bind("<<ComboboxSelected>>", self._on_screen_change)
@@ -537,6 +556,13 @@ class TextConverterScreen(ttk.Frame):
             self._list_placeholder.place_forget()
         else:
             self._list_placeholder.place(relx=0.5, rely=0.5, anchor="center")
+        self._update_convert_state()
+
+    def _update_convert_state(self) -> None:
+        """Keep CONVERT disabled until an image is selected."""
+        if self._converting:
+            return
+        T.set_hero_enabled(self._btn_convert, self._file is not None)
 
     def _clear_output(self) -> None:
         self._preview_canvas.delete("all")
@@ -567,7 +593,7 @@ class TextConverterScreen(ttk.Frame):
             self._surface = self._resolve_custom_surface()
 
         self._converting = True
-        self._btn_convert.config(state="disabled")
+        T.set_hero_enabled(self._btn_convert, False, text="  \u27f3  CONVERTING\u2026  ")
         self._progress_var.set(0)
         self._pct_var.set("  0%")
         self._status_var.set("Converting\u2026")
@@ -620,7 +646,8 @@ class TextConverterScreen(ttk.Frame):
             f"Done  \u00b7  {self._surface.char_w}\u00d7{self._surface.char_h} chars  "
             f"\u00b7  {len(output_str):,} characters total"
         )
-        self._btn_convert.config(state="normal")
+        self._btn_convert.config(text="  ▶  CONVERT TO TEXT  ▶  ")
+        self._update_convert_state()
 
         self._btn_copy.config(
             state="normal",
@@ -637,7 +664,8 @@ class TextConverterScreen(ttk.Frame):
 
     def _on_conversion_error(self, err: str) -> None:
         self._converting = False
-        self._btn_convert.config(state="normal")
+        self._btn_convert.config(text="  ▶  CONVERT TO TEXT  ▶  ")
+        self._update_convert_state()
         self._status_var.set(f"Error: {err}")
         T.themed_showinfo(self.winfo_toplevel(), "Conversion Error",
                           f"Conversion failed:\n\n{err}")

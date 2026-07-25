@@ -33,13 +33,25 @@ HOVER   = "#21262d"
 BORDER  = "#30363d"
 
 # ===========================================================================
-# Typography  (all Courier New — monospace keeps column alignment intact)
+# Typography  (v2 — sans for chrome, monospace kept for data)
+# ---------------------------------------------------------------------------
+# UI chrome  -> Segoe UI (proportional): titles, section heads, labels, buttons.
+# Data       -> Courier New (monospace): logs, lists, specs and column-aligned
+#               dropdowns — anywhere alignment or a "readout" feel matters.
+# Both families ship on every Windows 10/11 machine, so the packaged exe is safe.
 # ===========================================================================
-FONT_MONO  = "Courier New"
-FONT_BODY  = ("Courier New", 10)
-FONT_LABEL = ("Courier New", 10)
-FONT_TITLE = ("Courier New", 16, "bold")
-FONT_SMALL = ("Courier New", 8)
+FONT_UI      = "Segoe UI"
+FONT_TITLE   = ("Segoe UI Semibold", 17)
+FONT_SECTION = ("Segoe UI Semibold", 11)
+FONT_LABEL   = ("Segoe UI", 10)
+FONT_BODY    = ("Segoe UI", 10)
+FONT_SMALL   = ("Segoe UI", 9)
+FONT_BTN     = ("Segoe UI Semibold", 10)
+FONT_HERO    = ("Segoe UI Semibold", 13)
+
+# Monospace — data / readouts / column alignment (keep for logs, lists, specs)
+FONT_MONO      = "Courier New"
+FONT_MONO_BODY = ("Courier New", 9)
 
 
 # ===========================================================================
@@ -54,41 +66,51 @@ def configure_styles(style: ttk.Style) -> None:
 
     style.configure("TLabel",         background=BG,    foreground=TEXT,  font=FONT_LABEL)
     style.configure("Panel.TLabel",   background=PANEL, foreground=TEXT,  font=FONT_LABEL)
-    style.configure("Muted.TLabel",   background=BG,    foreground=MUTED, font=("Courier New", 9))
+    style.configure("Muted.TLabel",   background=BG,    foreground=MUTED, font=FONT_SMALL)
     style.configure("Title.TLabel",   background=BG,    foreground=CYAN,  font=FONT_TITLE)
-    style.configure("Section.TLabel", background=BG,    foreground=CYAN,  font=("Courier New", 10, "bold"))
+    style.configure("Section.TLabel", background=BG,    foreground=CYAN,  font=FONT_SECTION)
 
-    # Standard action button
+    # Standard action button — cyan text on panel, visible focus ring
     style.configure("SE.TButton",
         background=PANEL, foreground=CYAN,
         bordercolor=BORDER, darkcolor=PANEL, lightcolor=PANEL,
-        relief="flat", font=FONT_LABEL, padding=(10, 4))
+        relief="flat", font=FONT_BTN, padding=(11, 5), focuscolor=CYAN)
     style.map("SE.TButton",
         background=[("active", HOVER), ("disabled", BG)],
-        foreground=[("disabled", BORDER)])
+        foreground=[("disabled", BORDER)],
+        bordercolor=[("focus", CYAN)])
 
     # Back navigation button — muted at rest, cyan on hover
     style.configure("Back.TButton",
         background=PANEL, foreground=MUTED,
         bordercolor=BORDER, darkcolor=PANEL, lightcolor=PANEL,
-        relief="flat", font=("Courier New", 10), padding=(10, 4))
+        relief="flat", font=("Segoe UI", 10), padding=(11, 5), focuscolor=CYAN)
     style.map("Back.TButton",
         background=[("active", HOVER)],
-        foreground=[("active", CYAN)])
+        foreground=[("active", CYAN)],
+        bordercolor=[("focus", CYAN)])
 
     # Small info / secondary button
     style.configure("Info.TButton",
         background=PANEL, foreground=MUTED,
         bordercolor=BORDER, darkcolor=PANEL, lightcolor=PANEL,
-        relief="flat", font=("Courier New", 9), padding=(4, 2))
+        relief="flat", font=("Segoe UI", 9), padding=(5, 3), focuscolor=CYAN)
     style.map("Info.TButton",
         background=[("active", HOVER)],
-        foreground=[("active", CYAN)])
+        foreground=[("active", CYAN)],
+        bordercolor=[("focus", CYAN)])
 
     style.configure("SE.Horizontal.TProgressbar",
         troughcolor=PANEL, background=CYAN,
         bordercolor=BORDER, darkcolor=CYAN, lightcolor=CYAN,
         thickness=18)
+
+    style.configure("SE.Horizontal.TScale",
+        background=CYAN, troughcolor=PANEL,
+        bordercolor=BORDER, darkcolor=CYAN, lightcolor=CYAN,
+        sliderlength=16, sliderthickness=14)
+    style.map("SE.Horizontal.TScale",
+        background=[("active", CYAN), ("disabled", BORDER)])
 
     style.configure("SE.TCheckbutton",
         background=BG, foreground=TEXT, font=FONT_LABEL,
@@ -98,11 +120,12 @@ def configure_styles(style: ttk.Style) -> None:
         background=[("active", BG)],
         foreground=[("active", TEXT), ("disabled", BORDER)])
 
+    # Combobox — kept MONOSPACE: its values are data / column-aligned dropdowns
     style.configure("SE.TCombobox",
         fieldbackground=PANEL, background=PANEL,
         foreground=TEXT, selectforeground=CYAN, selectbackground=PANEL,
         bordercolor=BORDER, darkcolor=PANEL, lightcolor=PANEL,
-        arrowcolor=CYAN, font=FONT_LABEL)
+        arrowcolor=CYAN, font=FONT_MONO_BODY)
     style.map("SE.TCombobox",
         fieldbackground=[("readonly", PANEL)],
         selectbackground=[("readonly", PANEL)],
@@ -120,6 +143,12 @@ def configure_styles(style: ttk.Style) -> None:
         bordercolor=BORDER, arrowcolor=CYAN,
         darkcolor=PANEL, lightcolor=PANEL)
     style.map("SE.Vertical.TScrollbar", background=[("active", HOVER)])
+
+    style.configure("SE.Horizontal.TScrollbar",
+        background=PANEL, troughcolor=BG,
+        bordercolor=BORDER, arrowcolor=CYAN,
+        darkcolor=PANEL, lightcolor=PANEL)
+    style.map("SE.Horizontal.TScrollbar", background=[("active", HOVER)])
 
     style.configure("SE.Treeview",
         background=BG, foreground=TEXT, fieldbackground=BG,
@@ -191,10 +220,11 @@ def build_icon_photoimage(root_widget) -> "tk.PhotoImage | None":
 # ===========================================================================
 
 def build_header(parent, title: str, subtitle: str,
-                 back_cb=None, note: str = "") -> ttk.Frame:
+                 back_cb=None, note: str = "", info_cb=None) -> ttk.Frame:
     """
     Attach a consistent header to *parent*.
-    If back_cb is provided a ◀ BACK button appears on the right.
+    If back_cb is provided a ◀ BACK button appears top-right.
+    If info_cb is provided an ⓘ help button appears just left of Back.
     If note is provided it appears as a third muted line below subtitle.
     Returns the outer header frame.
     """
@@ -205,6 +235,13 @@ def build_header(parent, title: str, subtitle: str,
     if back_cb:
         ttk.Button(outer, text="◀  BACK", command=back_cb,
                    style="Back.TButton", width=10).pack(side="right", anchor="n")
+
+    # Help / shortcuts button sits just to the left of Back — shares the
+    # Back button's style so the two line up at exactly the same height
+    if info_cb:
+        ttk.Button(outer, text="ⓘ", command=info_cb,
+                   style="Back.TButton", width=3).pack(
+                       side="right", anchor="n", padx=(0, 8))
 
     icon_canvas = draw_hex_canvas(outer)
     icon_canvas.pack(side="left", padx=(0, 12))
@@ -229,21 +266,47 @@ def separator(parent, pady: tuple = (8, 8)) -> None:
 
 
 def hero_button(parent, text: str, command) -> tk.Button:
-    """The large cyan-bordered CONVERT-style action button."""
+    """The large cyan-bordered primary action button."""
     btn = tk.Button(
         parent, text=text, command=command,
         bg=PANEL, fg=CYAN,
         activebackground=HOVER, activeforeground=CYAN,
-        font=("Courier New", 13, "bold"),
+        font=FONT_HERO,
         relief="flat", bd=0,
         padx=24, pady=8,
         cursor="hand2",
         highlightthickness=2,
         highlightbackground=CYAN, highlightcolor=CYAN,
     )
-    btn.bind("<Enter>", lambda e: btn.config(bg=HOVER))
-    btn.bind("<Leave>", lambda e: btn.config(bg=PANEL))
+
+    def _enter(_e):
+        if str(btn["state"]) != "disabled":
+            btn.config(bg=HOVER)
+
+    def _leave(_e):
+        if str(btn["state"]) != "disabled":
+            btn.config(bg=PANEL)
+
+    btn.bind("<Enter>", _enter)
+    btn.bind("<Leave>", _leave)
     return btn
+
+
+def set_hero_enabled(btn, enabled, text=None):
+    """Toggle a hero button between ready (cyan) and disabled (muted).
+
+    Optionally swap the label — e.g. to show a working state such as
+    "  ⟳  CONVERTING…  ".  Use enabled=False to make the button
+    un-clickable until its inputs are ready.
+    """
+    if text is not None:
+        btn.config(text=text)
+    if enabled:
+        btn.config(state="normal", fg=CYAN, bg=PANEL,
+                   highlightbackground=CYAN, highlightcolor=CYAN, cursor="hand2")
+    else:
+        btn.config(state="disabled", fg=MUTED, bg=BG,
+                   highlightbackground=BORDER, highlightcolor=BORDER, cursor="arrow")
 
 
 def log_text_widget(parent) -> tk.Text:
@@ -273,6 +336,151 @@ def append_log(widget: tk.Text, message: str, tag: str = "info") -> None:
     widget.insert("end", message + "\n", tag)
     widget.see("end")
     widget.config(state="disabled")
+
+
+# ===========================================================================
+# Keyboard Shortcuts
+# ===========================================================================
+
+# Widget classes that accept text input.  Bare-key shortcuts (Space, digits,
+# single letters) must NOT fire while one of these has focus, or they would
+# hijack the user's typing.
+_TEXT_CLASSES = ("Entry", "TEntry", "Text", "TCombobox", "Spinbox", "TSpinbox")
+
+
+def _is_guarded_key(keyspec: str) -> bool:
+    """True for bare keys that could collide with typing — i.e. no Ctrl/Alt
+    modifier and not a safe control key (Escape / Return / Delete / F-keys)."""
+    k = keyspec.strip("<>")
+    if any(mod in k for mod in ("Control", "Alt", "Command", "Meta")):
+        return False
+    safe = ("Escape", "Return", "KP_Enter",
+            "F1", "F2", "F3", "F4", "F5", "F6",
+            "F7", "F8", "F9", "F10", "F11", "F12")
+    return not any(s in k for s in safe)
+
+
+def bind_shortcuts(screen, mapping) -> None:
+    """Bind {keyspec: callback} on the screen's toplevel and remember them so
+    they can be torn down with unbind_shortcuts() when the screen goes away.
+
+    Callbacks take no arguments.  Bare keys (Space, digits…) are automatically
+    suppressed while a text widget has focus, so they never interfere with
+    typing.  Bindings use add="+" so they don't clobber existing handlers.
+    """
+    top = screen.winfo_toplevel()
+    ids = getattr(screen, "_shortcut_ids", None)
+    if ids is None:
+        ids = []
+        screen._shortcut_ids = ids
+
+    for keyspec, callback in mapping.items():
+        guarded = _is_guarded_key(keyspec)
+
+        def handler(_e, cb=callback, g=guarded):
+            if g:
+                focused = top.focus_get()
+                if focused is not None:
+                    try:
+                        if focused.winfo_class() in _TEXT_CLASSES:
+                            return None   # let the keystroke reach the field
+                    except Exception:
+                        pass
+            cb()
+            return "break"
+
+        fid = top.bind(keyspec, handler, add="+")
+        ids.append((keyspec, fid))
+
+
+def unbind_shortcuts(screen) -> None:
+    """Remove every shortcut previously bound to *screen* via bind_shortcuts."""
+    top = screen.winfo_toplevel()
+    for keyspec, fid in getattr(screen, "_shortcut_ids", []):
+        try:
+            top.unbind(keyspec, fid)
+        except Exception:
+            pass
+    screen._shortcut_ids = []
+
+
+# ===========================================================================
+# Hyperlinks / Report a bug
+# ===========================================================================
+
+BUG_REPORT_URL = "https://github.com/Godimas101/universal-image-converter/issues/new"
+
+
+def hyperlink(parent, text: str, url: str, bg: str = BG, font=None) -> tk.Label:
+    """Underlined text link that opens *url*; brightens to the accent on hover."""
+    link = tk.Label(parent, text=text, bg=bg, fg=BLUE,
+                    font=font or ("Segoe UI", 9, "underline"), cursor="hand2")
+    link.bind("<Button-1>", lambda _e: webbrowser.open(url))
+    link.bind("<Enter>",    lambda _e: link.config(fg=CYAN))
+    link.bind("<Leave>",    lambda _e: link.config(fg=BLUE))
+    return link
+
+
+def bug_link(parent, bg: str = BG) -> tk.Label:
+    """Standard 'Found a bug? Report it' link for a screen footer/header."""
+    return hyperlink(parent, "Found a bug?  Report it", BUG_REPORT_URL, bg=bg)
+
+
+# ===========================================================================
+# Keyboard Shortcuts popup
+# ===========================================================================
+
+def show_shortcuts(parent, title, rows, intro="") -> None:
+    """Themed popup listing keyboard shortcuts.
+
+    rows is a list of (keys, description) tuples; a (None, "Heading") row
+    renders as a small section header.
+    """
+    dlg = tk.Toplevel(parent)
+    dlg.title(title)
+    dlg.configure(bg=BG)
+    dlg.resizable(False, False)
+    dlg.transient(parent)
+
+    hdr = ttk.Frame(dlg, style="TFrame")
+    hdr.pack(fill="x", padx=16, pady=(14, 0))
+    ttk.Label(hdr, text="▣  " + title.upper(), style="Section.TLabel").pack(side="left")
+    tk.Frame(dlg, bg=BORDER, height=1).pack(fill="x", padx=16, pady=(8, 0))
+
+    if intro:
+        ttk.Label(dlg, text=intro, style="Muted.TLabel",
+                  wraplength=360, justify="left").pack(anchor="w", padx=16, pady=(6, 0))
+
+    body = ttk.Frame(dlg, style="TFrame")
+    body.pack(fill="both", expand=True, padx=16, pady=(8, 4))
+    body.columnconfigure(0, minsize=150)
+    body.columnconfigure(1, weight=1)
+    for r, (keys, desc) in enumerate(rows):
+        if keys is None:
+            ttk.Label(body, text=desc, style="Section.TLabel").grid(
+                row=r, column=0, columnspan=2, sticky="w", pady=(8, 2))
+        else:
+            # Key names stay monospace so multi-key combos line up
+            tk.Label(body, text=keys, bg=BG, fg=CYAN,
+                     font=("Courier New", 9, "bold"), anchor="w").grid(
+                         row=r, column=0, sticky="w", pady=1)
+            ttk.Label(body, text=desc, style="TLabel").grid(
+                row=r, column=1, sticky="w", pady=1)
+
+    tk.Frame(dlg, bg=BORDER, height=1).pack(fill="x", padx=16)
+    btn_row = ttk.Frame(dlg, style="TFrame")
+    btn_row.pack(fill="x", padx=16, pady=(10, 14))
+    ttk.Button(btn_row, text="CLOSE", command=dlg.destroy,
+               style="SE.TButton", width=8).pack(side="right")
+
+    dlg.bind("<Escape>", lambda _e: dlg.destroy())
+    dlg.bind("<Return>", lambda _e: dlg.destroy())
+
+    parent.update_idletasks()
+    dlg.update_idletasks()
+    x = parent.winfo_x() + (parent.winfo_width()  - dlg.winfo_reqwidth())  // 2
+    y = parent.winfo_y() + (parent.winfo_height() - dlg.winfo_reqheight()) // 2
+    dlg.geometry(f"+{max(0, x)}+{max(0, y)}")
 
 
 # ===========================================================================
@@ -437,7 +645,7 @@ class SupportersWindow(tk.Toplevel):
             btn_row, text="SUPPORT ON PATREON",
             bg=PANEL, fg=CYAN,
             activebackground=HOVER, activeforeground=CYAN,
-            font=("Courier New", 9, "bold"),
+            font=("Segoe UI Semibold", 9),
             relief="flat", bd=0, padx=12, pady=4, cursor="hand2",
             highlightthickness=1,
             highlightbackground=CYAN, highlightcolor=CYAN,
@@ -524,7 +732,7 @@ def _base_dialog(parent, title: str, message: str,
 
     tk.Label(dlg, text=message,
              bg=BG, fg=TEXT,
-             font=("Courier New", 9),
+             font=FONT_BODY,
              justify="left", wraplength=width, anchor="w",
              padx=16, pady=12).pack(fill="x")
 

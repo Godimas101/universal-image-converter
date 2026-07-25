@@ -1,0 +1,79 @@
+name: Release
+
+# Builds the .exe on a Windows runner and publishes a GitHub Release.
+# Fires on every push to main, but only cuts a release when VERSION is a new
+# version (i.e. the tag v<VERSION> doesn't exist yet). Bump VERSION to release.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: ver
+        shell: bash
+        run: echo "version=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Does this release already exist?
+        id: exists
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "skip=true"  >> "$GITHUB_OUTPUT"
+            echo "Release v${{ steps.ver.outputs.version }} already exists — nothing to build."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.exists.outputs.skip == 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        if: steps.exists.outputs.skip == 'false'
+        run: pip install -r requirements.txt pyinstaller
+
+      - name: Build the executable
+        if: steps.exists.outputs.skip == 'false'
+        run: pyinstaller --noconfirm "SE_Image_Converter.spec"
+
+      - name: Verify build output
+        if: steps.exists.outputs.skip == 'false'
+        shell: pwsh
+        run: if (-not (Test-Path "dist/SE Image Converter.exe")) { throw "exe was not produced" }
+
+      - name: Smoke-test the packaged app
+        if: steps.exists.outputs.skip == 'false'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "dist/SE Image Converter.exe" -ArgumentList "--check","$($PWD.Path)\smoke.txt" -Wait
+          if (Test-Path smoke.txt) { Get-Content smoke.txt } else { Write-Host "no smoke.txt produced" }
+
+      - name: Publish release
+        if: steps.exists.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          # Pull this version's section out of CHANGELOG.md for the notes;
+          # fall back to auto-generated notes if it isn't there.
+          awk -v v="$VER" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md || true
+          if [ -s notes.md ]; then
+            gh release create "v$VER" "dist/SE Image Converter.exe" --title "SE Image Converter v$VER" --notes-file notes.md
+          else
+            gh release create "v$VER" "dist/SE Image Converter.exe" --title "SE Image Converter v$VER" --generate-notes
+          fi

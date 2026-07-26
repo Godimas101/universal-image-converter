@@ -17,6 +17,8 @@ from tkinter import ttk
 from pathlib import Path
 
 import se_theme as T
+import update_check
+import version
 
 _HELP_URL = "https://github.com/Godimas101/universal-image-converter#readme"
 
@@ -88,6 +90,29 @@ class SEToolsApp(tk.Tk):
         self.bind("<F1>", lambda _e: webbrowser.open(_HELP_URL))
 
         self.show_screen("home")
+
+        # Update check — reveal an "Update available" link on the home screen if
+        # a newer GitHub release exists. Background, non-blocking, fails silent.
+        self.update_info = None
+        update_check.check_async(version.REPO, version.APP_VERSION,
+                                 self._on_update_result)
+
+    # -----------------------------------------------------------------------
+
+    def _on_update_result(self, info) -> None:
+        """Called (on the check daemon thread) with the update dict or None."""
+        self.update_info = info
+        if info:
+            try:
+                self.after(0, self._reflect_update)
+            except Exception:
+                pass
+
+    def _reflect_update(self) -> None:
+        """Show the update link on the current screen, if it supports one."""
+        scr = self._current_screen
+        if scr is not None and self.update_info and hasattr(scr, "show_update_indicator"):
+            scr.show_update_indicator(self.update_info)
 
     # -----------------------------------------------------------------------
 

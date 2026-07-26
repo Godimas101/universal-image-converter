@@ -7,6 +7,12 @@ All notable changes to SE Universal Image Converter. Format follows [Keep a Chan
 - Embed an in-app Report-a-bug link ([#5](https://github.com/Godimas101/universal-image-converter/issues/5)) — closed 2026-07-25 by @Godimas101
 - CI: auto-build + publish the .exe on merge to main ([#4](https://github.com/Godimas101/universal-image-converter/issues/4)) — closed 2026-07-25 by @Godimas101
 
+## [1.5.1] — 2026-07-26
+
+### Added
+- **Update available** link on the home screen — on launch the app checks GitHub for a newer release and, if there is one, shows an "Update v*x.y.z*" link that opens the release page. Runs in the background and fails silent when offline.
+- The displayed version now reads from the bundled `VERSION` file, so it can't drift from the release CI ships.
+
 ## [1.5.0] — 2026-07-25
 
 A look-and-feel and usability refresh, matching the rest of the SE tools. Same features, same colours — cleaner type, keyboard shortcuts, and clearer feedback.

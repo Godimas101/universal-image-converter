@@ -13,6 +13,7 @@ from tkinter import ttk
 import webbrowser
 
 import se_theme as T
+import version
 
 
 class HomeScreen(ttk.Frame):
@@ -23,6 +24,21 @@ class HomeScreen(ttk.Frame):
         self._supporters_window = None
         self._build()
         self._setup_shortcuts()
+        # If the launcher already found an update, reflect it (e.g. on return to home).
+        info = getattr(app, "update_info", None)
+        if info:
+            self.show_update_indicator(info)
+
+    def show_update_indicator(self, info) -> None:
+        """Reveal the 'Update available' link in the footer. Idempotent."""
+        if getattr(self, "_update_shown", False):
+            return
+        if not (hasattr(self, "_update_row") and self._update_row.winfo_exists()):
+            return
+        self._update_shown = True
+        T.hyperlink(self._update_row,
+                    f"⬆  Update v{info['version']} available  —  get it",
+                    info["url"], bg=T.BG).pack()
 
     def _open_supporters(self):
         if self._supporters_window and self._supporters_window.winfo_exists():
@@ -172,7 +188,11 @@ class HomeScreen(ttk.Frame):
         bug_row.pack(anchor="center", pady=(6, 2))
         T.bug_link(bug_row, bg=T.BG).pack()
 
-        ttk.Label(self, text="v1.5.0  ·  SE Image Converter",
+        # Filled by show_update_indicator() when a newer release exists.
+        self._update_row = tk.Frame(self, bg=T.BG)
+        self._update_row.pack(anchor="center", pady=(2, 0))
+
+        ttk.Label(self, text=f"v{version.APP_VERSION}  ·  SE Image Converter",
                   style="Muted.TLabel").pack(anchor="center", pady=(0, 10))
 
     # -----------------------------------------------------------------------

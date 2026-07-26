@@ -16,7 +16,7 @@ a = Analysis(
     ["se_launcher.py"],
     pathex=[],
     binaries=pil_binaries,
-    datas=pil_datas,
+    datas=pil_datas + [("VERSION", ".")],
     hiddenimports=pil_hiddenimports + [
         # Screen modules are loaded lazily by string name in se_launcher.py
         # so PyInstaller won't detect them via static analysis.

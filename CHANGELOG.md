@@ -7,6 +7,11 @@ All notable changes to SE Universal Image Converter. Format follows [Keep a Chan
 - Embed an in-app Report-a-bug link ([#5](https://github.com/Godimas101/universal-image-converter/issues/5)) — closed 2026-07-25 by @Godimas101
 - CI: auto-build + publish the .exe on merge to main ([#4](https://github.com/Godimas101/universal-image-converter/issues/4)) — closed 2026-07-25 by @Godimas101
 
+## [1.6.0] — 2026-07-26
+
+### Changed
+- **Now ships as an installer, with one-click updates.** The app is built as a onedir bundle (which fixes a Windows Defender false-positive that flagged the old single-exe) and installs per-user — no admin, a Start Menu shortcut, and a clean uninstall. When a newer version exists, the home-screen notice becomes **⬆ Update & restart**: one click downloads it, installs silently, and relaunches the app. Running from source, it still just opens the release page.
+
 ## [1.5.1] — 2026-07-26
 
 ### Added

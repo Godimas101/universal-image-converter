@@ -13,6 +13,7 @@ from tkinter import ttk
 import webbrowser
 
 import se_theme as T
+import update_check
 import version
 
 
@@ -30,15 +31,47 @@ class HomeScreen(ttk.Frame):
             self.show_update_indicator(info)
 
     def show_update_indicator(self, info) -> None:
-        """Reveal the 'Update available' link in the footer. Idempotent."""
+        """Reveal the update control in the footer. If the app can self-update
+        (installed build), it's a one-click 'Update & restart'; otherwise it's a
+        link to the release page. Idempotent."""
         if getattr(self, "_update_shown", False):
             return
         if not (hasattr(self, "_update_row") and self._update_row.winfo_exists()):
             return
         self._update_shown = True
-        T.hyperlink(self._update_row,
-                    f"⬆  Update v{info['version']} available  —  get it",
-                    info["url"], bg=T.BG).pack()
+        self._update_info = info
+        if update_check.can_self_update(info):
+            lbl = tk.Label(self._update_row,
+                           text=f"⬆  Update v{info['version']} & restart",
+                           bg=T.BG, fg=T.BLUE, font=("Segoe UI", 9, "underline"),
+                           cursor="hand2")
+            lbl.pack()
+            lbl.bind("<Enter>", lambda _e: lbl.config(fg=T.CYAN))
+            lbl.bind("<Leave>", lambda _e: lbl.config(fg=T.BLUE))
+            lbl.bind("<Button-1>", lambda _e: self._do_self_update(lbl))
+        else:
+            T.hyperlink(self._update_row,
+                        f"⬆  Update v{info['version']} available  —  get it",
+                        info["url"], bg=T.BG).pack()
+
+    def _do_self_update(self, lbl) -> None:
+        """Download the installer, apply it silently, and relaunch. The label
+        shows progress; the window closes when the update proceeds."""
+        info = self._update_info
+        lbl.config(text=f"Downloading v{info['version']} — the app will restart…",
+                   cursor="", fg=T.MUTED)
+        for seq in ("<Button-1>", "<Enter>", "<Leave>"):
+            lbl.unbind(seq)
+
+        def _on_err(_exc):
+            try:
+                self.after(0, lambda: lbl.winfo_exists() and lbl.config(
+                    text=f"⬆  Update v{info['version']} — download failed, try again",
+                    fg=T.BLUE))
+            except Exception:
+                pass
+
+        update_check.apply_update(info["asset_url"], on_error=_on_err)
 
     def _open_supporters(self):
         if self._supporters_window and self._supporters_window.winfo_exists():

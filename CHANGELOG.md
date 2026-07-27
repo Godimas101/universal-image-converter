@@ -7,6 +7,11 @@ All notable changes to SE Universal Image Converter. Format follows [Keep a Chan
 - Embed an in-app Report-a-bug link ([#5](https://github.com/Godimas101/universal-image-converter/issues/5)) — closed 2026-07-25 by @Godimas101
 - CI: auto-build + publish the .exe on merge to main ([#4](https://github.com/Godimas101/universal-image-converter/issues/4)) — closed 2026-07-25 by @Godimas101
 
+## [1.6.1] — 2026-07-26
+
+### Changed
+- The in-app **Report a bug** link now opens a pre-filled bug form with the `bug` label already applied, instead of a blank issue. Added repo issue templates (bug + feature) to back it.
+
 ## [1.6.0] — 2026-07-26
 
 ### Changed

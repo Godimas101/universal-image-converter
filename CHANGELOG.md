@@ -7,6 +7,11 @@ All notable changes to SE Universal Image Converter. Format follows [Keep a Chan
 - Embed an in-app Report-a-bug link ([#5](https://github.com/Godimas101/universal-image-converter/issues/5)) — closed 2026-07-25 by @Godimas101
 - CI: auto-build + publish the .exe on merge to main ([#4](https://github.com/Godimas101/universal-image-converter/issues/4)) — closed 2026-07-25 by @Godimas101
 
+## [1.6.2] — 2026-07-26
+
+### Added
+- **Billboard preset** for the Economy 2 blocks: a "Billboard · 3:5" screen preset (covers both the Billboard and Round Billboard) in the Image → DDS and Image → LCD converters. ([#3](https://github.com/Godimas101/universal-image-converter/issues/3))
+
 ## [1.6.1] — 2026-07-26
 
 ### Changed

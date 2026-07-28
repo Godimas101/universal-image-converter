@@ -86,6 +86,10 @@ SCREEN_PRESETS: list[ScreenPreset] = [
     ScreenPreset("Text Panel / Curved  ·  ~5:3",   1024, 1024, 1024,  614, 0.1),
     ScreenPreset("Widescreen  ·  16:9",            1024, 1024, 1024,  576, 0.1),
     ScreenPreset("Corner LCD Strip  ·  ~6:1",      1024, 1024, 1024,  171, 0.4),
+    # Economy 2 pack — Billboard (2 screens) + Round Billboard (3 screens) share
+    # the same per-screen geometry: ScreenWidth 3 × ScreenHeight 5 (portrait),
+    # TextureResolution 512. The 3:5 image is centered on a BC7-safe 1024² DDS.
+    ScreenPreset("Billboard  ·  3:5",              1024, 1024,  614, 1024, 0.1),
 ]
 
 PRESET_NAMES: list[str] = [p.name for p in SCREEN_PRESETS] + ["Custom"]
